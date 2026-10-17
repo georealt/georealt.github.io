@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#16372f">
+  <meta name="description" content="Geo Realt — new property listings in Georgia, in one place.">
+  <title>Geo Realt — New listings</title>
+  <link rel="icon" href="./icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="./icon.png" alt="" width="42" height="42"><div><strong>Geo Realt</strong><small data-i18n="tagline">Georgia property radar</small></div></div>
+    <div class="top-actions"><span class="live-dot" aria-hidden="true"></span><span class="live-label" data-i18n="live">Live listings</span><select id="language" aria-label="Interface language"><option value="en">EN</option><option value="ru">RU</option><option value="ka">KA</option></select><button id="account-button" class="account-button" data-i18n="signIn">Sign in</button></div>
+  </header>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="eyebrow" data-i18n="workspace">WORKSPACE</div>
+      <nav class="nav" aria-label="Main navigation"><button class="nav-item active" data-view="listings"><span>⌂</span><span data-i18n="listings">Listings</span></button><button class="nav-item" data-view="feed"><span>◉</span><span data-i18n="feed">New matches</span><span id="feed-count" class="count" hidden>0</span></button><button class="nav-item" data-view="searches"><span>◇</span><span data-i18n="savedSearches">Saved searches</span></button></nav>
+      <div class="sidebar-bottom"><div class="source-badge"><span class="source-mark">M</span><div><b>MyHome.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><p data-i18n="sourceHint">New public listings are checked regularly. Open the original listing for full details.</p></div>
+    </aside>
+    <section class="content">
+      <div class="hero"><div><div class="eyebrow" data-i18n="discover">DISCOVER GEORGIA</div><h1 id="page-title" data-i18n="headline">Find your next opportunity.</h1><p id="page-subtitle" data-i18n="subhead">Fresh properties from MyHome.ge, collected in one calm workspace.</p></div><div class="hero-ornament" aria-hidden="true"><span>⌂</span></div></div>
+      <div id="status" class="status" role="status" hidden></div>
+      <div id="listings-view" class="view">
+        <div class="filter-card"><div class="section-head"><div><div class="eyebrow" data-i18n="refine">REFINE RESULTS</div><h2 data-i18n="yourSearch">Your search</h2></div><button id="save-search" class="text-button" data-i18n="saveSearch">+ Save search</button></div>
+          <form id="filters" class="filter-grid"><label><span data-i18n="deal">Deal</span><select name="operation"><option value="" data-i18n="any">Any</option><option value="RENT" data-i18n="rent">Rent</option><option value="BUY" data-i18n="buy">Buy</option></select></label><label><span data-i18n="type">Property</span><select name="propertyType"><option value="" data-i18n="any">Any</option><option value="APARTMENT" data-i18n="apartment">Apartment</option><option value="HOUSE" data-i18n="house">House</option></select></label><label><span data-i18n="place">City or district</span><input name="city" type="search" maxlength="100" data-placeholder="cityPlaceholder" placeholder="Tbilisi, Batumi…"></label><label><span data-i18n="maxPrice">Max price · USD</span><input name="maxPriceUsd" type="number" min="0" placeholder="—"></label><label><span data-i18n="bedrooms">Min bedrooms</span><input name="minBedrooms" type="number" min="0" max="20" placeholder="—"></label><button class="primary-button search-button" type="submit" data-i18n="showListings">Show listings</button></form>
+        </div>
+        <div class="results-head"><div><div class="eyebrow" data-i18n="latest">THE LATEST</div><h2 data-i18n="properties">Properties</h2></div><span id="result-count" class="result-count"></span></div>
+        <div id="listings-grid" class="listing-grid"></div><button id="load-more" class="load-more" hidden data-i18n="loadMore">Load more</button>
+      </div>
+      <div id="feed-view" class="view" hidden><div class="results-head"><div><div class="eyebrow" data-i18n="forYou">FOR YOU</div><h2 data-i18n="newMatches">New matches</h2></div><button id="enable-push" class="secondary-button" data-i18n="enablePush">Enable notifications</button></div><p class="view-intro" data-i18n="feedIntro">New listings appear here after you save a search. Existing listings are your starting point and do not trigger alerts.</p><div id="feed-list" class="feed-list"></div></div>
+      <div id="searches-view" class="view" hidden><div class="results-head"><div><div class="eyebrow" data-i18n="watchlist">WATCHLIST</div><h2 data-i18n="savedSearches">Saved searches</h2></div></div><p class="view-intro" data-i18n="searchIntro">Save a filter to watch for matching listings as they appear.</p><div id="searches-list" class="searches-list"></div></div>
+    </section>
+  </main>
+  <dialog id="auth-dialog"><form id="auth-form" method="dialog"><button type="button" class="dialog-close" id="close-auth" aria-label="Close">×</button><div class="eyebrow" data-i18n="welcome">WELCOME TO GEO REALT</div><h2 id="auth-title" data-i18n="signIn">Sign in</h2><p data-i18n="authIntro">Save filters and get updates on fresh listings.</p><label><span data-i18n="email">Email</span><input id="auth-email" type="email" required autocomplete="email"></label><label><span data-i18n="password">Password</span><input id="auth-password" type="password" required minlength="10" autocomplete="current-password"></label><button id="auth-submit" class="primary-button" type="submit" data-i18n="signIn">Sign in</button><button id="auth-toggle" class="text-button" type="button" data-i18n="createAccount">Create an account</button></form></dialog>
+  <script src="./app.js" defer></script>
+</body>
+</html>
