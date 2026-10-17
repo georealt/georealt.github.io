@@ -54,7 +54,7 @@ async function enablePush(){
 async function disablePush(){
   try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(subscription){await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint:subscription.endpoint})});await subscription.unsubscribe()}await refreshPushState();showStatus(tr('pushOff'))}catch(error){showStatus(error.message,true)}
 }
-async function testPush(){try{await api('/push/test',{method:'POST'});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
+async function testPush(){try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(!subscription){await refreshPushState();throw Error(tr('pushUnsupported'))}await api('/push/test',{method:'POST',body:JSON.stringify({endpoint:subscription.endpoint})});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.view)));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
