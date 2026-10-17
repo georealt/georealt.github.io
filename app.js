@@ -25,14 +25,18 @@ async function loadSearches(){if(!token){searches=[];renderSearches();return}try
 function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.city||'',s.maxPriceUsd?'≤ $'+s.maxPriceUsd:''].filter(Boolean).join(' · '))}</p></div><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){registerMode=false;$('#auth-dialog').showModal();setLanguage(language)}
 function signedIn(result){token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));$('#auth-dialog').close();setLanguage(language);loadFeed();loadSearches();refreshPushState()}
-async function refreshPushState(){
-  let subscribed=false;
-  if(token&&'serviceWorker'in navigator&&'PushManager'in window&&Notification.permission==='granted'){
-    try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(subscription){await api('/push/subscribe',{method:'POST',body:JSON.stringify(subscription.toJSON())});subscribed=true}}catch{}
-  }
+function showPushControls(subscribed){
   $('#enable-push').hidden=subscribed;
   $('#test-push').hidden=!subscribed;
   $('#disable-push').hidden=!subscribed;
+}
+async function refreshPushState(){
+  let subscribed=false;
+  if(token&&'serviceWorker'in navigator&&'PushManager'in window){
+    try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(subscription){await api('/push/subscribe',{method:'POST',body:JSON.stringify(subscription.toJSON())});localStorage.setItem('geoPushEndpoint',subscription.endpoint);subscribed=true}}catch{}
+    if(!subscribed&&'Notification'in window&&Notification.permission!=='denied')subscribed=!!localStorage.getItem('geoPushEndpoint');
+  }
+  showPushControls(subscribed);
 }
 async function enablePush(){
   if(!token){showStatus(tr('loginFirst'),true);openAuth();return}
@@ -47,20 +51,21 @@ async function enablePush(){
     const key=Uint8Array.from(atob(encoded.padEnd(Math.ceil(encoded.length/4)*4,'=')),c=>c.charCodeAt(0));
     const subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
     await api('/push/subscribe',{method:'POST',body:JSON.stringify(subscription.toJSON())});
-    await refreshPushState();
+    localStorage.setItem('geoPushEndpoint',subscription.endpoint);
+    showPushControls(true);
     showStatus(tr('pushReady'));
   }catch(error){showStatus(error.message,true)}
 }
 async function disablePush(){
-  try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(subscription){await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint:subscription.endpoint})});await subscription.unsubscribe()}await refreshPushState();showStatus(tr('pushOff'))}catch(error){showStatus(error.message,true)}
+  try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe();localStorage.removeItem('geoPushEndpoint');showPushControls(false);showStatus(tr('pushOff'))}catch(error){showStatus(error.message,true)}
 }
-async function testPush(){try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();if(!subscription){await refreshPushState();throw Error(tr('pushUnsupported'))}await api('/push/test',{method:'POST',body:JSON.stringify({endpoint:subscription.endpoint})});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
+async function testPush(){try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(!endpoint)throw Error(tr('pushUnsupported'));await api('/push/test',{method:'POST',body:JSON.stringify({endpoint})});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.view)));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#load-more').addEventListener('click',()=>loadListings(true));
 $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,minBedrooms:filters().minBedrooms?Number(filters().minBedrooms):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
-$('#account-button').addEventListener('click',async()=>{if(account){try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();if(subscription){await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint:subscription.endpoint})});await subscription.unsubscribe()}}catch{}token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];setLanguage(language);refreshPushState();navigate('listings')}else openAuth()});
+$('#account-button').addEventListener('click',async()=>{if(account){try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];searches=[];setLanguage(language);showPushControls(false);navigate('listings')}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-toggle').addEventListener('click',()=>{registerMode=!registerMode;setLanguage(language)});
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/'+(registerMode?'register':'login'),{method:'POST',body:JSON.stringify({email:$('#auth-email').value,password:$('#auth-password').value})});signedIn(result)}catch(error){showStatus(error.message,true)}});
