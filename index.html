@@ -8,7 +8,7 @@
   <title>Geo Realt — New listings</title>
   <link rel="icon" href="./icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=20261019-ss2">
+  <link rel="stylesheet" href="./styles.css?v=20261019-ss3">
 </head>
 <body>
   <header class="topbar">
@@ -22,11 +22,11 @@
       <div class="sidebar-bottom"><div class="source-badge"><span class="source-mark">M</span><div><b>MyHome.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><div class="source-badge"><span class="source-mark ss-mark">S</span><div><b>ss.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><p data-i18n="sourceHint">New public listings are checked regularly. Open the original listing for full details.</p></div>
     </aside>
     <section class="content">
-      <div class="hero"><div><div class="eyebrow" data-i18n="discover">DISCOVER GEORGIA</div><h1 id="page-title" data-i18n="headline">Find your next opportunity.</h1><p id="page-subtitle" data-i18n="subhead">Fresh properties from MyHome.ge, collected in one calm workspace.</p></div><div class="hero-ornament" aria-hidden="true"><span>⌂</span></div></div>
+      <div class="hero"><div><div class="eyebrow" data-i18n="discover">DISCOVER GEORGIA</div><h1 id="page-title" data-i18n="headline">Find your next opportunity.</h1><p id="page-subtitle" data-i18n="subhead">Fresh properties from MyHome.ge and ss.ge, in one workspace.</p></div><div class="hero-ornament" aria-hidden="true"><span>⌂</span></div></div>
       <div id="status" class="status" role="status" hidden></div>
       <div id="listings-view" class="view">
         <div class="filter-card"><div class="section-head"><div><div class="eyebrow" data-i18n="refine">REFINE RESULTS</div><h2 data-i18n="yourSearch">Your search</h2></div><button id="save-search" class="text-button" data-i18n="saveSearch">+ Save search</button></div>
-          <form id="filters" class="filter-grid"><label><span data-i18n="deal">Deal</span><select name="operation"><option value="" data-i18n="any">Any</option><option value="RENT" data-i18n="rent">Rent</option><option value="BUY" data-i18n="buy">Buy</option></select></label><label><span data-i18n="type">Property</span><select name="propertyType"><option value="" data-i18n="any">Any</option><option value="APARTMENT" data-i18n="apartment">Apartment</option><option value="HOUSE" data-i18n="house">House</option></select></label><label><span data-i18n="place">City or district</span><input name="city" type="search" maxlength="100" data-placeholder="cityPlaceholder" placeholder="Tbilisi, Batumi…"></label><label><span data-i18n="maxPrice">Max price · USD</span><input name="maxPriceUsd" type="number" min="0" placeholder="—"></label><label><span data-i18n="bedrooms">Min bedrooms</span><input name="minBedrooms" type="number" min="0" max="20" placeholder="—"></label><button class="primary-button search-button" type="submit" data-i18n="showListings">Show listings</button></form>
+          <form id="filters" class="filter-grid"><label><span data-i18n="sourceFilter">Source</span><select name="source"><option value="" data-i18n="allSources">All sources</option><option value="myhome.ge">MyHome.ge</option><option value="ss.ge">ss.ge</option></select></label><label><span data-i18n="deal">Deal</span><select name="operation"><option value="" data-i18n="any">Any</option><option value="RENT" data-i18n="rent">Rent</option><option value="BUY" data-i18n="buy">Buy</option></select></label><label><span data-i18n="type">Property</span><select name="propertyType"><option value="" data-i18n="any">Any</option><option value="APARTMENT" data-i18n="apartment">Apartment</option><option value="HOUSE" data-i18n="house">House</option></select></label><label><span data-i18n="place">City or district</span><input name="city" type="search" maxlength="100" data-placeholder="cityPlaceholder" placeholder="Tbilisi, Batumi…"></label><label><span data-i18n="maxPrice">Max price · USD</span><input name="maxPriceUsd" type="number" min="0" placeholder="—"></label><label><span data-i18n="bedrooms">Min bedrooms</span><input name="minBedrooms" type="number" min="0" max="20" placeholder="—"></label><button class="primary-button search-button" type="submit" data-i18n="showListings">Show listings</button></form>
         </div>
         <div class="results-head"><div><div class="eyebrow" data-i18n="latest">THE LATEST</div><h2 data-i18n="properties">Properties</h2></div><span id="result-count" class="result-count"></span></div>
         <div id="listings-grid" class="listing-grid"></div><button id="load-more" class="load-more" hidden data-i18n="loadMore">Load more</button>
@@ -36,6 +36,6 @@
     </section>
   </main>
   <dialog id="auth-dialog"><form id="auth-form" method="dialog"><button type="button" class="dialog-close" id="close-auth" aria-label="Close">×</button><div class="eyebrow" data-i18n="welcome">WELCOME TO GEO REALT</div><h2 id="auth-title" data-i18n="signIn">Sign in</h2><p data-i18n="authIntro">Save filters and get updates on fresh listings.</p><label><span data-i18n="email">Email</span><input id="auth-email" type="email" required autocomplete="email"></label><label><span data-i18n="password">Password</span><input id="auth-password" type="password" required minlength="10" autocomplete="current-password"></label><button id="auth-submit" class="primary-button" type="submit" data-i18n="signIn">Sign in</button><button id="auth-toggle" class="text-button" type="button" data-i18n="createAccount">Create an account</button></form></dialog>
-  <script src="./app.js?v=20261019-ss2" defer></script>
+  <script src="./app.js?v=20261019-ss3" defer></script>
 </body>
 </html>
