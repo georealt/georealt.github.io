@@ -24,18 +24,20 @@ function validSource(url){try{const u=new URL(url);return u.protocol==='https:'&
 function validImage(url){try{const u=new URL(url);return u.protocol==='https:'&&['static-api-statements.tnet.ge','static.ss.ge'].includes(u.hostname)?u.href:''}catch{return ''}}
 function plainDescription(value){return String(value||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/\s+/g,' ').trim()}
 function galleryImages(item){return (item.imageUrls||[]).map(validImage).filter(Boolean)}
+const gallerySelections=new Map();
 function phoneNumbers(item){return [...new Set((item.phoneNumbers?.length?item.phoneNumbers:[item.phoneNumber]).filter(number=>/^\+\d{8,15}$/.test(number||'')))]}
 function phoneLabel(number){return number.replace(/^(\+995)(5\d{2})(\d{3})(\d{3})$/,'$1 $2 $3 $4')}
 function callLinks(item){return phoneNumbers(item).map(number=>`<a class="call-button" href="tel:${safe(number)}" aria-label="${safe(tr('call'))} ${safe(phoneLabel(number))}">☎ ${safe(phoneLabel(number))}</a>`).join('')}
 function card(item){
-  const images=galleryImages(item), image=images[0];
+  const images=galleryImages(item), selected=images.indexOf(gallerySelections.get(item.id));
+  const imageIndex=selected>=0?selected:0, image=images[imageIndex];
   const photo=image?`<img src="${safe(image)}" loading="lazy" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'⌂'}))">`:'<div class="fallback">⌂</div>';
-  const gallery=images.length>1?`<div class="gallery-controls"><button type="button" data-gallery-step="-1" aria-label="${safe(tr('previousPhoto'))}">‹</button><span class="gallery-count">1 / ${images.length}</span><button type="button" data-gallery-step="1" aria-label="${safe(tr('nextPhoto'))}">›</button></div>`:'';
+  const gallery=images.length>1?`<div class="gallery-controls"><button type="button" data-gallery-step="-1" aria-label="${safe(tr('previousPhoto'))}">‹</button><span class="gallery-count">${imageIndex+1} / ${images.length}</span><button type="button" data-gallery-step="1" aria-label="${safe(tr('nextPhoto'))}">›</button></div>`:'';
   const formatted=item.priceUsd?new Intl.NumberFormat(language==='ka'?'ka-GE':language==='ru'?'ru-RU':'en-US').format(item.priceUsd):'—';
   const fullDescription=plainDescription(item.description),description=fullDescription.slice(0,250);
   const advertiser={OWNER:'owner',AGENT:'agent',AGENCY:'agency'}[item.advertiserType];
   const phones=callLinks(item);
-  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="0">${photo}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">$${formatted}<small> / USD</small></div><h3>${safe(item.title)}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer"><small>${safe(sourceName(item))}</small>${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(tr(item.source==='ss.ge'?'contactOnSs':'contactOnSource'))}</span>`}</div></div><a class="card-hit" href="${safe(validSource(item.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(item.title)}"></a></article>`
+  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">$${formatted}<small> / USD</small></div><h3>${safe(item.title)}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer"><small>${safe(sourceName(item))}</small>${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(tr(item.source==='ss.ge'?'contactOnSs':'contactOnSource'))}</span>`}</div></div><a class="card-hit" href="${safe(validSource(item.sourceUrl))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(item.title)}"></a></article>`
 }
 function galleryMove(card,step){
   const holder=card.querySelector('.card-image');
@@ -44,6 +46,7 @@ function galleryMove(card,step){
   if(images.length<2)return false;
   const index=(Number(holder.dataset.galleryIndex)+step+images.length)%images.length;
   holder.dataset.galleryIndex=String(index);
+  gallerySelections.set(item.id,images[index]);
   let img=holder.querySelector('img');
   if(!img){img=document.createElement('img');img.loading='lazy';img.alt='';holder.querySelector('.fallback')?.remove();holder.prepend(img)}
   img.src=images[index];
