@@ -7,9 +7,9 @@ const words = {
 Object.assign(words.en,{owner:'Owner',agent:'Agent / agency',agency:'Agency',call:'Call',shortDescription:'Short description',contactOnSource:'Phone on MyHome ↗',contactOnSs:'Phone on ss.ge ↗',openListing:'Open listing on {source}',sourceFilter:'Source',allSources:'All sources',previousPhoto:'Previous photo',nextPhoto:'Next photo'});
 Object.assign(words.ru,{owner:'Хозяин',agent:'Агент / агентство',agency:'Агентство',call:'Позвонить',shortDescription:'Короткое описание',contactOnSource:'Телефон на MyHome ↗',contactOnSs:'Телефон на ss.ge ↗',openListing:'Открыть объявление на {source}',sourceFilter:'Источник',allSources:'Все источники',previousPhoto:'Предыдущее фото',nextPhoto:'Следующее фото'});
 Object.assign(words.ka,{owner:'მეპატრონე',agent:'აგენტი / სააგენტო',agency:'სააგენტო',call:'დარეკვა',shortDescription:'მოკლე აღწერა',contactOnSource:'ტელეფონი MyHome-ზე ↗',contactOnSs:'ტელეფონი ss.ge-ზე ↗',openListing:'განცხადების გახსნა {source}-ზე',sourceFilter:'წყარო',allSources:'ყველა წყარო',previousPhoto:'წინა ფოტო',nextPhoto:'შემდეგი ფოტო'});
-Object.assign(words.en,{originalText:'Original text'});
-Object.assign(words.ru,{originalText:'Исходный текст'});
-Object.assign(words.ka,{originalText:'ორიგინალი ტექსტი'});
+Object.assign(words.en,{originalText:'Source text in another language'});
+Object.assign(words.ru,{originalText:'Текст на другом языке'});
+Object.assign(words.ka,{originalText:'ტექსტი სხვა ენაზე'});
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false;
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
