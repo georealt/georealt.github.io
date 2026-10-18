@@ -13,6 +13,9 @@ Object.assign(words.ka,{originalText:'ტექსტი სხვა ენა�
 Object.assign(words.en,{advertiserFilter:'Advertiser',allAdvertisers:'Any advertiser',realtorFilter:'Agent / agency',unknownAdvertiser:'Not specified'});
 Object.assign(words.ru,{advertiserFilter:'Автор объявления',allAdvertisers:'Любой автор',realtorFilter:'Риэлтор / агентство',unknownAdvertiser:'Не указан'});
 Object.assign(words.ka,{advertiserFilter:'განმცხადებელი',allAdvertisers:'ნებისმიერი',realtorFilter:'აგენტი / სააგენტო',unknownAdvertiser:'მითითებული არ არის'});
+Object.assign(words.en,{updatedOnSource:'Updated',postedOnSource:'Posted'});
+Object.assign(words.ru,{updatedOnSource:'Обновлено',postedOnSource:'Размещено'});
+Object.assign(words.ka,{updatedOnSource:'განახლდა',postedOnSource:'გამოქვეყნდა'});
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false;
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
@@ -44,6 +47,15 @@ function validImage(url){try{const u=new URL(url);return u.protocol==='https:'&&
 function plainDescription(value){return String(value||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/\s+/g,' ').trim()}
 function galleryImages(item){return (item.imageUrls||[]).map(validImage).filter(Boolean)}
 function listingTitle(item){return item.titles?.[language]||item.title}
+function listingDate(item){
+  const raw=item.sourceUpdatedAt;
+  if(!raw)return null;
+  const iso=item.source==='myhome.ge'&&/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(raw)?raw.replace(' ','T')+'+04:00':raw;
+  const date=new Date(iso);
+  if(Number.isNaN(date.getTime()))return null;
+  const locale={en:'en-GB',ru:'ru-RU',ka:'ka-GE'}[language]||'en-GB';
+  return {iso:date.toISOString(),text:new Intl.DateTimeFormat(locale,{timeZone:'Asia/Tbilisi',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date)};
+}
 function listingDescription(item){
   const translated=item.descriptions?.[language];
   const fallbackVariant=Object.entries(item.descriptions||{}).find(([,text])=>!!text);
@@ -63,8 +75,8 @@ function card(item){
   const formatted=item.priceUsd?new Intl.NumberFormat(language==='ka'?'ka-GE':language==='ru'?'ru-RU':'en-US').format(item.priceUsd):'—';
   const {text:fullDescription,original}=listingDescription(item),description=fullDescription.slice(0,250);
   const advertiser={OWNER:'owner',AGENT:'agent',AGENCY:'agency'}[item.advertiserType];
-  const phones=callLinks(item);
-  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">$${formatted}<small> / USD</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer"><small>${safe(sourceName(item))}</small>${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(tr(item.source==='ss.ge'?'contactOnSs':'contactOnSource'))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
+  const phones=callLinks(item), date=listingDate(item);
+  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">$${formatted}<small> / USD</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer">${date?`<small class="card-date"><span>${safe(tr(item.source==='myhome.ge'?'updatedOnSource':'postedOnSource'))}</span><time datetime="${safe(date.iso)}">${safe(date.text)}</time></small>`:''}${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(tr(item.source==='ss.ge'?'contactOnSs':'contactOnSource'))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
 }
 function galleryMove(card,step){
   const holder=card.querySelector('.card-image');
