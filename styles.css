@@ -63,3 +63,5 @@
 
 .currency-note{margin:12px 0 0;color:#667e6e;font-size:11px;line-height:1.5}
 @media(max-width:400px){.top-actions{gap:4px}.top-actions select{padding:8px 5px}.brand strong{font-size:15px}.brand img{width:30px;height:30px}.brand{gap:6px}}
+
+.card-details{flex-wrap:wrap;row-gap:8px}
