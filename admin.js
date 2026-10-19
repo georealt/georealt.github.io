@@ -1,0 +1,14 @@
+const API='https://georgiahomes.duckdns.org:8443/realtor';
+const token=localStorage.getItem('geoToken')||'';
+const $=selector=>document.querySelector(selector);
+const safe=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+function status(message,error=false){const el=$('#admin-status');el.textContent=message;el.className='admin-status'+(error?' error':'');el.hidden=false}
+async function api(path,options={}){const response=await fetch(API+path,{...options,headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw Error(body.detail||'Ошибка запроса');return body}
+let accounts=[];
+function render(){
+  $('#admin-users').innerHTML=accounts.length?accounts.map(item=>`<div class="admin-row" data-id="${safe(item.id)}"><div><b>${safe(item.username)}</b><small>${item.paused?'Приостановлен':new Date().toISOString().slice(0,10)>item.expiresAt?'Срок истёк':'Активен'}</small></div><label>Дата начала<input class="start" type="date" value="${safe(item.startsAt)}"></label><label>Доступ до<input class="end" type="date" value="${safe(item.expiresAt)}"></label><button class="save" type="button">Сохранить</button><button class="pause" type="button">${item.paused?'Возобновить':'Приостановить'}</button></div>`).join(''):'<p>Пока нет выданных доступов.</p>';
+}
+async function load(){const me=await api('/me');if(!me.isAdmin)throw Error('Доступ к панели есть только у администратора.');accounts=(await api('/admin/users')).items;render()}
+$('#new-user').addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const data=Object.fromEntries(new FormData(form));try{const item=await api('/admin/users',{method:'POST',body:JSON.stringify(data)});form.reset();accounts.unshift(item);render();status('Доступ для '+item.username+' создан. Передайте пользователю логин и заданный пароль лично.')}catch(error){status(error.message,true)}});
+$('#admin-users').addEventListener('click',async event=>{const button=event.target.closest('button');if(!button)return;const row=button.closest('.admin-row'),item=accounts.find(entry=>entry.id===row.dataset.id);if(!item)return;const data={startsAt:row.querySelector('.start').value,expiresAt:row.querySelector('.end').value,paused:button.classList.contains('pause')?!item.paused:item.paused};try{const updated=await api('/admin/users/'+item.id,{method:'PATCH',body:JSON.stringify(data)});accounts=accounts.map(entry=>entry.id===item.id?updated:entry);render();status('Доступ '+item.username+' обновлён.')}catch(error){status(error.message,true)}});
+if(token)load().catch(error=>status(error.message,true));else status('Сначала войдите в Geo Realt под учётной записью администратора.',true);
