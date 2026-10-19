@@ -6,7 +6,7 @@
   <main class="admin-main">
     <h1>Пользователи</h1><p>Создавайте логины и задавайте срок доступа. Изменения действуют сразу, включая уже открытые сессии.</p>
     <div id="admin-status" role="status" hidden></div>
-    <section class="admin-card"><h2>Новый пользователь</h2><form id="new-user" class="admin-grid"><label>Логин<input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="off"></label><label>Пароль<input name="password" type="password" required minlength="10" autocomplete="new-password"></label><label>Дата начала<input name="startsAt" type="date" required></label><label>Доступ до<input name="expiresAt" type="date" required></label><button class="primary-button" type="submit">Создать доступ</button></form></section>
+    <section class="admin-card"><h2>Новый пользователь</h2><p>Оставьте даты пустыми для бессрочного доступа. Можно указать только одну из них.</p><form id="new-user" class="admin-grid"><label>Логин<input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="off"></label><label>Пароль<input name="password" type="password" required minlength="4" autocomplete="new-password"></label><label>Дата начала<input name="startsAt" type="date"></label><label>Дата окончания<input name="expiresAt" type="date"></label><button class="primary-button" type="submit">Создать доступ</button></form></section>
     <section class="admin-card"><h2>Выданные доступы</h2><div id="admin-users"></div></section>
-  </main><script src="./admin.js?v=20261020-entry1" defer></script>
+  </main><script src="./admin.js?v=20261020-access2" defer></script>
 </body></html>
