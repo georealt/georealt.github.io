@@ -60,3 +60,6 @@
 .feed-filter select{min-height:38px;max-width:100%;border:1px solid #dbe5dc;border-radius:9px;background:#fff;color:#254e39;padding:7px 11px;font-size:12px;font-weight:700}
 
 .source-mark.realting-mark{background:#267d88}
+
+.currency-note{margin:12px 0 0;color:#667e6e;font-size:11px;line-height:1.5}
+@media(max-width:400px){.top-actions{gap:4px}.top-actions select{padding:8px 5px}.brand strong{font-size:15px}.brand img{width:30px;height:30px}.brand{gap:6px}}

@@ -22,6 +22,11 @@ Object.assign(words.ka,{showSearchResults:'განცხადებები�
 Object.assign(words.en,{statusFilter:'Status',allStatuses:'All statuses',emptyStatus:'No listings with this status yet.',contacted:'Called',dismissed:'Not interested'});
 Object.assign(words.ru,{statusFilter:'Статус',allStatuses:'Все статусы',emptyStatus:'Пока нет объявлений с этим статусом.',contacted:'Позвонил',dismissed:'Неинтересно'});
 Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყველა სტატუსი',emptyStatus:'ამ სტატუსის განცხადებები ჯერ არ არის.',contacted:'დავრეკე',dismissed:'არ მაინტერესებს'});
+Object.assign(words.en,{currencyLabel:'Price currency',maxPrice:'Max price · {currency}',fxNote:'Approximate conversion · NBG',fxUnavailable:'GEL conversion is temporarily unavailable. Prices are shown in USD.'});
+Object.assign(words.ru,{currencyLabel:'Валюта цен',maxPrice:'Цена до · {currency}',fxNote:'Примерный пересчёт · НБГ',fxUnavailable:'Пересчёт в GEL временно недоступен. Цены показаны в USD.'});
+Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPrice:'მაქს. ფასი · {currency}',fxNote:'საორიენტაციო კონვერტაცია · სებ',fxUnavailable:'GEL-ში კონვერტაცია დროებით მიუწვდომელია. ფასები ნაჩვენებია USD-ში.'});
+let currency='USD', exchangeRate=null;
+const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false, feedRequestId=0;
 let feedStatus=['NEW','SAVED','CONTACTED','DISMISSED'].includes(localStorage.getItem('geoFeedStatus'))?localStorage.getItem('geoFeedStatus'):'', feedTotal=0, feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};
@@ -32,7 +37,7 @@ function showStatus(message,error=false){const node=$('#status');node.textConten
 async function api(path,options={}){
   const method=(options.method||'GET').toUpperCase();
   const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})};
-  const publicRead=method==='GET'&&(path==='/push/public-key'||/^\/listings(?:\?|\/\d+$|$)/.test(path));
+  const publicRead=method==='GET'&&(path==='/push/public-key'||path==='/exchange-rates'||/^\/listings(?:\?|\/\d+$|$)/.test(path));
   if(token&&!publicRead)headers.Authorization='Bearer '+token;
   let response;
   for(let attempt=0;attempt<2;attempt++){
@@ -46,9 +51,42 @@ async function api(path,options={}){
   if(!response.ok)throw Error(body.detail||tr('loadError'));
   return body;
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#auth-title').textContent=tr(registerMode?'register':'signIn');$('#auth-submit').textContent=tr(registerMode?'register':'signIn');$('#auth-toggle').textContent=tr(registerMode?'haveAccount':'createAccount');renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#auth-title').textContent=tr(registerMode?'register':'signIn');$('#auth-submit').textContent=tr(registerMode?'register':'signIn');$('#auth-toggle').textContent=tr(registerMode?'haveAccount':'createAccount');updateCurrencyUI();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
-function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;return values}
+function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;if(values.maxPriceUsd&&currency==='GEL')values.maxPriceUsd=String(Number(values.maxPriceUsd)/exchangeRate.usdGel);return values}
+function displayAmount(usd){return currency==='GEL'?Number(usd)*exchangeRate.usdGel:Number(usd)}
+function money(usd){
+  if(usd==null||!Number.isFinite(Number(usd))||Number(usd)<=0)return '—';
+  const amount=displayAmount(usd),text=new Intl.NumberFormat({en:'en-US',ru:'ru-RU',ka:'ka-GE'}[language],{maximumFractionDigits:currency==='GEL'?0:2}).format(amount);
+  return currency==='GEL'?`≈ ${text} ₾`:`$${text}`;
+}
+function updateCurrencyUI(){
+  $('#currency').value=currency;$('#currency').setAttribute('aria-label',tr('currencyLabel'));
+  $('#currency option[value="GEL"]').disabled=!exchangeRate;
+  $('[data-i18n="maxPrice"]').textContent=tr('maxPrice').replace('{currency}',currency);
+  const note=$('#currency-note');note.hidden=currency!=='GEL';
+  note.textContent=exchangeRate?`${tr('fxNote')} · 1 USD = ${exchangeRate.usdGel} GEL · ${exchangeRate.asOf}`:'';
+}
+function setCurrency(value,persist=true){
+  const next=value==='GEL'&&exchangeRate?'GEL':'USD';
+  const field=$('#filters').elements.namedItem('maxPriceUsd');
+  if(field.value&&next!==currency){const usd=currency==='GEL'?Number(field.value)/exchangeRate.usdGel:Number(field.value);field.value=Number((next==='GEL'?usd*exchangeRate.usdGel:usd).toFixed(2))}
+  currency=next;if(persist)localStorage.setItem('geoCurrency',currency);
+  updateCurrencyUI();renderListings();renderFeed();renderSearches();
+}
+async function loadExchangeRate(initial=false){
+  try{
+    const rate=await api('/exchange-rates');
+    if(!Number.isFinite(rate.usdGel)||rate.usdGel<=0||!/^\d{4}-\d{2}-\d{2}$/.test(rate.asOf)||!Number.isFinite(Date.parse(rate.fetchedAt))||Date.now()-Date.parse(rate.fetchedAt)>7*86400000)throw Error();
+    const field=$('#filters').elements.namedItem('maxPriceUsd');
+    const usd=field.value&&currency==='GEL'?Number(field.value)/exchangeRate.usdGel:null;
+    exchangeRate=rate;
+    if(usd!=null)field.value=Number((usd*rate.usdGel).toFixed(2));
+    setCurrency(initial?preferredCurrency:currency,false);
+  }catch{
+    if(exchangeRate&&Date.now()-Date.parse(exchangeRate.fetchedAt)>7*86400000){setCurrency('USD',false);exchangeRate=null;updateCurrencyUI();showStatus(tr('fxUnavailable'),true)}else if(!exchangeRate){updateCurrencyUI();if(initial&&preferredCurrency==='GEL')showStatus(tr('fxUnavailable'),true)}
+  }
+}
 function query(values){return new URLSearchParams(values).toString()}
 async function loadListings(more=false){if(!more){offset=0;listings=[]}$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;try{const data=await api('/listings?'+query({...filters(),limit:30,offset}));listings=more?[...listings,...data.items]:data.items;total=data.total;offset=listings.length;renderListings()}catch(error){$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}}
 function sourceName(item){return {'myhome.ge':'MyHome.ge','ss.ge':'ss.ge','korter.ge':'Korter.ge','realting.com':'Realting.com'}[item.source]||item.source}
@@ -100,11 +138,11 @@ function card(item){
   const imageIndex=selected>=0?selected:0, image=images[imageIndex];
   const photo=image?`<img src="${safe(image)}" loading="lazy" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'⌂'}))">`:'<div class="fallback">⌂</div>';
   const gallery=images.length>1?`<div class="gallery-controls"><button type="button" data-gallery-step="-1" aria-label="${safe(tr('previousPhoto'))}">‹</button><span class="gallery-count">${imageIndex+1} / ${images.length}</span><button type="button" data-gallery-step="1" aria-label="${safe(tr('nextPhoto'))}">›</button></div>`:'';
-  const formatted=item.priceUsd?new Intl.NumberFormat(language==='ka'?'ka-GE':language==='ru'?'ru-RU':'en-US').format(item.priceUsd):'—';
+  const formatted=money(item.priceUsd);
   const {text:fullDescription,original}=listingDescription(item),description=fullDescription.slice(0,250);
   const advertiser={OWNER:'owner',AGENT:'agent',AGENCY:'agent'}[item.advertiserType];
   const phones=callLinks(item), date=listingDate(item);
-  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${images.length?`<button type="button" class="photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"></button>`:``}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">$${formatted}<small> / USD</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer">${date?`<small class="card-date"><span>${safe(tr(['myhome.ge','realting.com'].includes(item.source)?'updatedOnSource':'postedOnSource'))}</span><time datetime="${safe(date.iso)}">${safe(date.text)}</time></small>`:''}${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(phoneOnSource(item))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
+  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${images.length?`<button type="button" class="photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"></button>`:``}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">${safe(formatted)}<small> / ${currency}</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span><span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span></div><div class="card-footer">${date?`<small class="card-date"><span>${safe(tr(['myhome.ge','realting.com'].includes(item.source)?'updatedOnSource':'postedOnSource'))}</span><time datetime="${safe(date.iso)}">${safe(date.text)}</time></small>`:''}${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(phoneOnSource(item))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
 }
 function galleryMove(card,step){
   const holder=card.querySelector('.card-image');
@@ -182,7 +220,7 @@ async function loadFeed(more=false){
     showStatus(error.message,true);
   }
 }
-function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · $${safe(item.priceUsd||'—')} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
+function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · ${safe(money(item.priceUsd))} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
 function renderFeed(){
   renderFeedCards();
   const all=Object.values(feedCounts).reduce((sum,count)=>sum+count,0);
@@ -197,7 +235,7 @@ async function loadSearches(){
   try{searches=(await api('/searches')).items;renderSearches()}
   catch(error){$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}
 }
-function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd?'≤ $'+s.maxPriceUsd:''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
+function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd?'≤ '+money(s.maxPriceUsd):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){registerMode=false;$('#auth-dialog').showModal();setLanguage(language)}
 function signedIn(result){token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));$('#auth-dialog').close();setLanguage(language);loadFeed();loadSearches();refreshPushState()}
 function showPushControls(subscribed){
@@ -236,6 +274,7 @@ async function disablePush(){
 }
 async function testPush(){try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(!endpoint)throw Error(tr('pushUnsupported'));await api('/push/test',{method:'POST',body:JSON.stringify({endpoint})});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.view)));
+$('#currency').addEventListener('change',event=>setCurrency(event.target.value));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#load-more').addEventListener('click',()=>loadListings(true));
@@ -244,7 +283,7 @@ $('#account-button').addEventListener('click',async()=>{if(account){try{const re
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-toggle').addEventListener('click',()=>{registerMode=!registerMode;setLanguage(language)});
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/'+(registerMode?'register':'login'),{method:'POST',body:JSON.stringify({email:$('#auth-email').value,password:$('#auth-password').value})});signedIn(result)}catch(error){showStatus(error.message,true)}});
-$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceUsd,minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceUsd==null?null:displayAmount(search.maxPriceUsd),minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
 $('#feed-load-more').addEventListener('click',()=>loadFeed(true));
@@ -261,5 +300,7 @@ if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
   navigator.serviceWorker.register('./sw.js?v=20261019-feed-status2').then(refreshPushState).catch(()=>{});
 }
-setLanguage(language);loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}
+setLanguage(language);loadExchangeRate(true);loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}
 setInterval(()=>{if(token&&document.visibilityState==='visible')loadFeed()},60000);
+
+setInterval(()=>loadExchangeRate(),3600000);
