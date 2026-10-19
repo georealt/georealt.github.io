@@ -22,9 +22,9 @@ Object.assign(words.ka,{showSearchResults:'განცხადებები�
 Object.assign(words.en,{statusFilter:'Status',allStatuses:'All statuses',emptyStatus:'No listings with this status yet.',contacted:'Called',dismissed:'Not interested'});
 Object.assign(words.ru,{statusFilter:'Статус',allStatuses:'Все статусы',emptyStatus:'Пока нет объявлений с этим статусом.',contacted:'Позвонил',dismissed:'Неинтересно'});
 Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყველა სტატუსი',emptyStatus:'ამ სტატუსის განცხადებები ჯერ არ არის.',contacted:'დავრეკე',dismissed:'არ მაინტერესებს'});
-Object.assign(words.en,{currencyLabel:'Price currency',maxPrice:'Max price · {currency}',fxNote:'Approximate conversion · NBG',fxUnavailable:'GEL conversion is temporarily unavailable. Prices are shown in USD.'});
-Object.assign(words.ru,{currencyLabel:'Валюта цен',maxPrice:'Цена до · {currency}',fxNote:'Примерный пересчёт · НБГ',fxUnavailable:'Пересчёт в GEL временно недоступен. Цены показаны в USD.'});
-Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPrice:'მაქს. ფასი · {currency}',fxNote:'საორიენტაციო კონვერტაცია · სებ',fxUnavailable:'GEL-ში კონვერტაცია დროებით მიუწვდომელია. ფასები ნაჩვენებია USD-ში.'});
+Object.assign(words.en,{currencyLabel:'Price currency',maxPrice:'Max price · {currency}',fxNote:'NBG conversion only when the source has no GEL price',fxUnavailable:'GEL conversion is temporarily unavailable. Prices are shown in USD.'});
+Object.assign(words.ru,{currencyLabel:'Валюта цен',maxPrice:'Цена до · {currency}',fxNote:'Если нет цены GEL у источника — пересчёт по НБГ',fxUnavailable:'Пересчёт в GEL временно недоступен. Цены показаны в USD.'});
+Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPrice:'მაქს. ფასი · {currency}',fxNote:'თუ წყაროს GEL ფასი არ აქვს — სებ-ის კურსი',fxUnavailable:'GEL-ში კონვერტაცია დროებით მიუწვდომელია. ფასები ნაჩვენებია USD-ში.'});
 let currency='USD', exchangeRate=null;
 const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
@@ -54,13 +54,20 @@ async function api(path,options={}){
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#auth-title').textContent=tr(registerMode?'register':'signIn');$('#auth-submit').textContent=tr(registerMode?'register':'signIn');$('#auth-toggle').textContent=tr(registerMode?'haveAccount':'createAccount');updateCurrencyUI();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
-function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;if(values.maxPriceUsd&&currency==='GEL')values.maxPriceUsd=String(Number(values.maxPriceUsd)/exchangeRate.usdGel);return values}
+function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;if(values.maxPriceUsd&&currency==='GEL'){values.maxPriceGel=values.maxPriceUsd;delete values.maxPriceUsd}return values}
 function displayAmount(usd){return currency==='GEL'?Number(usd)*exchangeRate.usdGel:Number(usd)}
-function money(usd){
-  if(usd==null||!Number.isFinite(Number(usd))||Number(usd)<=0)return '—';
-  const amount=displayAmount(usd),text=new Intl.NumberFormat({en:'en-US',ru:'ru-RU',ka:'ka-GE'}[language],{maximumFractionDigits:currency==='GEL'?0:2}).format(amount);
-  return currency==='GEL'?`≈ ${text} ₾`:`$${text}`;
+function money(usd,gel=null){
+  const valid=value=>value!=null&&Number.isFinite(Number(value))&&Number(value)>0;
+  let amount=currency==='GEL'?gel:usd,converted=false;
+  if(!valid(amount)){
+    const other=currency==='GEL'?usd:gel;
+    if(!valid(other)||!exchangeRate)return '—';
+    amount=currency==='GEL'?Number(other)*exchangeRate.usdGel:Number(other)/exchangeRate.usdGel;converted=true;
+  }
+  const text=new Intl.NumberFormat({en:'en-US',ru:'ru-RU',ka:'ka-GE'}[language],{maximumFractionDigits:2}).format(amount);
+  return `${converted?'≈ ':''}${currency==='GEL'?text+' ₾':'$'+text}`;
 }
+
 function updateCurrencyUI(){
   $('#currency').value=currency;$('#currency').setAttribute('aria-label',tr('currencyLabel'));
   $('#currency option[value="GEL"]').disabled=!exchangeRate;
@@ -68,21 +75,19 @@ function updateCurrencyUI(){
   const note=$('#currency-note');note.hidden=currency!=='GEL';
   note.textContent=exchangeRate?`${tr('fxNote')} · 1 USD = ${exchangeRate.usdGel} GEL · ${exchangeRate.asOf}`:'';
 }
-function setCurrency(value,persist=true){
-  const next=value==='GEL'&&exchangeRate?'GEL':'USD';
+function setCurrency(value,persist=true,refresh=true){
+  const previous=currency,next=value==='GEL'&&exchangeRate?'GEL':'USD';
   const field=$('#filters').elements.namedItem('maxPriceUsd');
   if(field.value&&next!==currency){const usd=currency==='GEL'?Number(field.value)/exchangeRate.usdGel:Number(field.value);field.value=Number((next==='GEL'?usd*exchangeRate.usdGel:usd).toFixed(2))}
   currency=next;if(persist)localStorage.setItem('geoCurrency',currency);
   updateCurrencyUI();renderListings();renderFeed();renderSearches();
+  if(refresh&&previous!==next&&field.value&&!listingsLoading)loadListings();
 }
 async function loadExchangeRate(initial=false){
   try{
     const rate=await api('/exchange-rates');
     if(!Number.isFinite(rate.usdGel)||rate.usdGel<=0||!/^\d{4}-\d{2}-\d{2}$/.test(rate.asOf)||!Number.isFinite(Date.parse(rate.fetchedAt))||Date.now()-Date.parse(rate.fetchedAt)>7*86400000)throw Error();
-    const field=$('#filters').elements.namedItem('maxPriceUsd');
-    const usd=field.value&&currency==='GEL'?Number(field.value)/exchangeRate.usdGel:null;
     exchangeRate=rate;
-    if(usd!=null)field.value=Number((usd*rate.usdGel).toFixed(2));
     setCurrency(initial?preferredCurrency:currency,false);
   }catch{
     if(exchangeRate&&Date.now()-Date.parse(exchangeRate.fetchedAt)>7*86400000){setCurrency('USD',false);exchangeRate=null;updateCurrencyUI();showStatus(tr('fxUnavailable'),true)}else if(!exchangeRate){updateCurrencyUI();if(initial&&preferredCurrency==='GEL')showStatus(tr('fxUnavailable'),true)}
@@ -139,7 +144,7 @@ function card(item){
   const imageIndex=selected>=0?selected:0, image=images[imageIndex];
   const photo=image?`<img src="${safe(image)}" loading="lazy" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'⌂'}))">`:'<div class="fallback">⌂</div>';
   const gallery=images.length>1?`<div class="gallery-controls"><button type="button" data-gallery-step="-1" aria-label="${safe(tr('previousPhoto'))}">‹</button><span class="gallery-count">${imageIndex+1} / ${images.length}</span><button type="button" data-gallery-step="1" aria-label="${safe(tr('nextPhoto'))}">›</button></div>`:'';
-  const formatted=money(item.priceUsd);
+  const formatted=money(item.priceUsd,item.priceGel);
   const {text:fullDescription,original}=listingDescription(item),description=fullDescription.slice(0,250);
   const advertiser={OWNER:'owner',AGENT:'agent',AGENCY:'agent'}[item.advertiserType];
   const phones=callLinks(item), date=listingDate(item);
@@ -221,7 +226,7 @@ async function loadFeed(more=false){
     showStatus(error.message,true);
   }
 }
-function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · ${safe(money(item.priceUsd))} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
+function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · ${safe(money(item.priceUsd,item.priceGel))} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
 function renderFeed(){
   renderFeedCards();
   const all=Object.values(feedCounts).reduce((sum,count)=>sum+count,0);
@@ -236,7 +241,7 @@ async function loadSearches(){
   try{searches=(await api('/searches')).items;renderSearches()}
   catch(error){$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}
 }
-function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd?'≤ '+money(s.maxPriceUsd):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
+function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){registerMode=false;$('#auth-dialog').showModal();setLanguage(language)}
 function signedIn(result){token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));$('#auth-dialog').close();setLanguage(language);loadFeed();loadSearches();refreshPushState()}
 function showPushControls(subscribed){
@@ -279,12 +284,12 @@ $('#currency').addEventListener('change',event=>setCurrency(event.target.value))
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#load-more').addEventListener('click',()=>loadListings(true));
-$('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,minBedrooms:filters().minBedrooms?Number(filters().minBedrooms):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,maxPriceGel:filters().maxPriceGel?Number(filters().maxPriceGel):null,minBedrooms:filters().minBedrooms?Number(filters().minBedrooms):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#account-button').addEventListener('click',async()=>{if(account){try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings')}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-toggle').addEventListener('click',()=>{registerMode=!registerMode;setLanguage(language)});
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/'+(registerMode?'register':'login'),{method:'POST',body:JSON.stringify({email:$('#auth-email').value,password:$('#auth-password').value})});signedIn(result)}catch(error){showStatus(error.message,true)}});
-$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceUsd==null?null:Number(displayAmount(search.maxPriceUsd).toFixed(2)),minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;if(search.maxPriceGel!=null)setCurrency('GEL',true,false);else if(search.maxPriceUsd!=null)setCurrency('USD',true,false);for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceGel??search.maxPriceUsd,minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
 $('#feed-load-more').addEventListener('click',()=>loadFeed(true));
