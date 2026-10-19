@@ -22,6 +22,7 @@
 .call-button:hover{background:#174f34}
 .sidebar-bottom .source-badge+.source-badge{margin-top:8px}
 .source-mark.ss-mark{background:#397bb7}
+.source-mark.korter-mark{background:#d78e2d}
 @media(max-width:760px){.listing-grid{grid-template-columns:1fr}.card-image{height:205px}.card-body{padding:17px}.card-body h3{font-size:15px;min-height:0}.card-price{font-size:22px}.card-location{font-size:14px}.card-details{font-size:11px}.card-footer small{display:block}}
 .card-description{background:#f1f7ef;border-left:4px solid #59a777;padding:14px 15px;font-size:14px;line-height:1.6}
 .card-description strong{display:block;margin:0 0 7px;color:#237147;font-size:11px;letter-spacing:.7px;text-transform:uppercase}
