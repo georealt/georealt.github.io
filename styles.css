@@ -55,3 +55,5 @@
 .photo-prev{left:12px}.photo-next{right:12px}
 .photo-step:disabled{display:none}
 .photo-count{padding:12px 16px;text-align:center;font-size:13px;font-weight:800}
+.feed-filter{display:flex;align-items:center;gap:10px;margin:0 0 15px;color:#657a6e;font-size:12px;font-weight:800}
+.feed-filter select{min-height:38px;max-width:100%;border:1px solid #dbe5dc;border-radius:9px;background:#fff;color:#254e39;padding:7px 11px;font-size:12px;font-weight:700}

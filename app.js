@@ -19,8 +19,12 @@ Object.assign(words.ka,{updatedOnSource:'განახლდა',postedOnSourc
 Object.assign(words.en,{showSearchResults:'Show listings'});
 Object.assign(words.ru,{showSearchResults:'Показать объявления'});
 Object.assign(words.ka,{showSearchResults:'განცხადებების ნახვა'});
+Object.assign(words.en,{statusFilter:'Status',allStatuses:'All statuses',emptyStatus:'No listings with this status yet.',contacted:'Called',dismissed:'Not interested'});
+Object.assign(words.ru,{statusFilter:'Статус',allStatuses:'Все статусы',emptyStatus:'Пока нет объявлений с этим статусом.',contacted:'Позвонил',dismissed:'Неинтересно'});
+Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყველა სტატუსი',emptyStatus:'ამ სტატუსის განცხადებები ჯერ არ არის.',contacted:'დავრეკე',dismissed:'არ მაინტერესებს'});
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false, feedRequestId=0;
+let feedStatus=['NEW','SAVED','CONTACTED','DISMISSED'].includes(localStorage.getItem('geoFeedStatus'))?localStorage.getItem('geoFeedStatus'):'', feedTotal=0, feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showStatus(message,error=false){const node=$('#status');node.textContent=message;node.className='status'+(error?' error':'');node.hidden=false;clearTimeout(showStatus.timer);showStatus.timer=setTimeout(()=>node.hidden=true,6000)}
@@ -140,14 +144,16 @@ $('#photo-dialog').addEventListener('keydown',event=>{if(event.key==='ArrowLeft'
 $('#photo-dialog').addEventListener('touchstart',event=>{const touch=event.changedTouches[0];photoTouch=touch?{x:touch.clientX,y:touch.clientY}:null},{passive:true});
 $('#photo-dialog').addEventListener('touchend',event=>{if(!photoTouch)return;const touch=event.changedTouches[0],dx=touch.clientX-photoTouch.x,dy=touch.clientY-photoTouch.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){galleryStep(dx<0?1:-1);if(event.cancelable)event.preventDefault()}photoTouch=null},{passive:false});
 function renderListings(){if(!$('#listings-grid'))return;$('#result-count').textContent=tr('resultCount',total);$('#listings-grid').innerHTML=listings.length?listings.map(card).join(''):`<div class="empty"><strong>${safe(tr('noListings'))}</strong>${safe(tr('tryFilters'))}</div>`;$('#load-more').hidden=offset>=total}
-async function loadFeed(){
+async function loadFeed(more=false){
   const requestId=++feedRequestId;
-  if(!token){feed=[];renderFeed();return}
-  if(!feed.length)$('#feed-list').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;
+  if(!token){feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};renderFeed();return}
+  if(!more){if(!feed.length)$('#feed-list').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;$('#feed-load-more').hidden=true}
   try{
-    const result=await api('/feed');
+    const result=await api('/feed?'+query({limit:50,offset:more?feed.length:0,...(feedStatus?{status:feedStatus}:{})}));
     if(requestId!==feedRequestId)return;
-    feed=result.items;
+    feed=more?[...feed,...result.items.filter(item=>!feed.some(previous=>previous.eventId===item.eventId))]:result.items;
+    feedTotal=result.total??feed.length;
+    feedCounts=result.counts||feedCounts;
     renderFeed();
   }catch(error){
     if(requestId!==feedRequestId)return;
@@ -155,7 +161,15 @@ async function loadFeed(){
     showStatus(error.message,true);
   }
 }
-function renderFeed(){if(!$('#feed-list'))return;$('#feed-count').hidden=!feed.length;$('#feed-count').textContent=feed.length;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · $${safe(item.priceUsd||'—')} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?'feedEmpty':'loginFirst'))}</div>`}
+function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · $${safe(item.priceUsd||'—')} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
+function renderFeed(){
+  renderFeedCards();
+  const all=Object.values(feedCounts).reduce((sum,count)=>sum+count,0);
+  $('#feed-count').hidden=!all;
+  $('#feed-count').textContent=all;
+  $('#feed-status').value=feedStatus;
+  $('#feed-load-more').hidden=feed.length>=feedTotal;
+}
 async function loadSearches(){
   if(!token){searches=[];renderSearches();return}
   if(!searches.length)$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;
@@ -205,13 +219,15 @@ $('#language').addEventListener('change',event=>setLanguage(event.target.value))
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#load-more').addEventListener('click',()=>loadListings(true));
 $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,minBedrooms:filters().minBedrooms?Number(filters().minBedrooms):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
-$('#account-button').addEventListener('click',async()=>{if(account){try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];searches=[];setLanguage(language);showPushControls(false);navigate('listings')}else openAuth()});
+$('#account-button').addEventListener('click',async()=>{if(account){try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings')}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-toggle').addEventListener('click',()=>{registerMode=!registerMode;setLanguage(language)});
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/'+(registerMode?'register':'login'),{method:'POST',body:JSON.stringify({email:$('#auth-email').value,password:$('#auth-password').value})});signedIn(result)}catch(error){showStatus(error.message,true)}});
 $('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceUsd,minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
-$('#feed-list').addEventListener('change',async event=>{const select=event.target.closest('[data-activity]');if(!select)return;const item=feed.find(entry=>String(entry.listing.id)===select.dataset.activity);try{await api('/listings/'+select.dataset.activity+'/activity',{method:'PATCH',body:JSON.stringify({status:select.value,note:item?.note||''})});if(item)item.status=select.value}catch(error){showStatus(error.message,true)}});
+$('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
+$('#feed-load-more').addEventListener('click',()=>loadFeed(true));
+$('#feed-list').addEventListener('change',async event=>{const select=event.target.closest('[data-activity]');if(!select)return;const item=feed.find(entry=>String(entry.listing.id)===select.dataset.activity);try{await api('/listings/'+select.dataset.activity+'/activity',{method:'PATCH',body:JSON.stringify({status:select.value,note:item?.note||''})});if(item)item.status=select.value;loadFeed()}catch(error){showStatus(error.message,true);if(item)select.value=item.status}});
 $('#feed-list').addEventListener('click',async event=>{const button=event.target.closest('[data-note]');if(!button)return;const item=feed.find(entry=>String(entry.listing.id)===button.dataset.note);if(!item)return;const note=prompt(tr('notes'),item.note||'');if(note===null)return;try{await api('/listings/'+button.dataset.note+'/activity',{method:'PATCH',body:JSON.stringify({status:item.status,note})});item.note=note;showStatus(tr('saved'))}catch(error){showStatus(error.message,true)}});
 $('#enable-push').addEventListener('click',enablePush);
 $('#test-push').addEventListener('click',testPush);
