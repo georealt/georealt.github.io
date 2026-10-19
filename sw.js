@@ -15,7 +15,11 @@ self.addEventListener('notificationclick', event => {
     if (url.origin !== self.location.origin) return;
     const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     const existing = windows.find(window => new URL(window.url).origin === url.origin);
-    if (existing) { await existing.navigate(url.href); await existing.focus(); }
+    if (existing) {
+      const opened = await existing.navigate(url.href) || existing;
+      await opened.focus();
+      opened.postMessage({ type: 'OPEN_FEED' });
+    }
     else await clients.openWindow(url.href);
   })());
 });

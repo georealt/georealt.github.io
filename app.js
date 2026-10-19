@@ -16,8 +16,11 @@ Object.assign(words.ka,{advertiserFilter:'განმცხადებელ�
 Object.assign(words.en,{updatedOnSource:'Updated',postedOnSource:'Posted'});
 Object.assign(words.ru,{updatedOnSource:'Обновлено',postedOnSource:'Размещено'});
 Object.assign(words.ka,{updatedOnSource:'განახლდა',postedOnSource:'გამოქვეყნდა'});
+Object.assign(words.en,{showSearchResults:'Show listings'});
+Object.assign(words.ru,{showSearchResults:'Показать объявления'});
+Object.assign(words.ka,{showSearchResults:'განცხადებების ნახვა'});
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
-let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false;
+let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false, feedRequestId=0;
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showStatus(message,error=false){const node=$('#status');node.textContent=message;node.className='status'+(error?' error':'');node.hidden=false;clearTimeout(showStatus.timer);showStatus.timer=setTimeout(()=>node.hidden=true,6000)}
@@ -137,10 +140,29 @@ $('#photo-dialog').addEventListener('keydown',event=>{if(event.key==='ArrowLeft'
 $('#photo-dialog').addEventListener('touchstart',event=>{const touch=event.changedTouches[0];photoTouch=touch?{x:touch.clientX,y:touch.clientY}:null},{passive:true});
 $('#photo-dialog').addEventListener('touchend',event=>{if(!photoTouch)return;const touch=event.changedTouches[0],dx=touch.clientX-photoTouch.x,dy=touch.clientY-photoTouch.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){galleryStep(dx<0?1:-1);if(event.cancelable)event.preventDefault()}photoTouch=null},{passive:false});
 function renderListings(){if(!$('#listings-grid'))return;$('#result-count').textContent=tr('resultCount',total);$('#listings-grid').innerHTML=listings.length?listings.map(card).join(''):`<div class="empty"><strong>${safe(tr('noListings'))}</strong>${safe(tr('tryFilters'))}</div>`;$('#load-more').hidden=offset>=total}
-async function loadFeed(){if(!token){feed=[];renderFeed();return}try{feed=(await api('/feed')).items;renderFeed()}catch(error){showStatus(error.message,true)}}
+async function loadFeed(){
+  const requestId=++feedRequestId;
+  if(!token){feed=[];renderFeed();return}
+  if(!feed.length)$('#feed-list').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;
+  try{
+    const result=await api('/feed');
+    if(requestId!==feedRequestId)return;
+    feed=result.items;
+    renderFeed();
+  }catch(error){
+    if(requestId!==feedRequestId)return;
+    $('#feed-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;
+    showStatus(error.message,true);
+  }
+}
 function renderFeed(){if(!$('#feed-list'))return;$('#feed-count').hidden=!feed.length;$('#feed-count').textContent=feed.length;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · $${safe(item.priceUsd||'—')} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?'feedEmpty':'loginFirst'))}</div>`}
-async function loadSearches(){if(!token){searches=[];renderSearches();return}try{searches=(await api('/searches')).items;renderSearches()}catch(error){showStatus(error.message,true)}}
-function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd?'≤ $'+s.maxPriceUsd:''].filter(Boolean).join(' · '))}</p></div><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
+async function loadSearches(){
+  if(!token){searches=[];renderSearches();return}
+  if(!searches.length)$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;
+  try{searches=(await api('/searches')).items;renderSearches()}
+  catch(error){$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}
+}
+function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr(s.propertyType==='HOUSE'?'house':'apartment'):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city||'',s.maxPriceUsd?'≤ $'+s.maxPriceUsd:''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){registerMode=false;$('#auth-dialog').showModal();setLanguage(language)}
 function signedIn(result){token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));$('#auth-dialog').close();setLanguage(language);loadFeed();loadSearches();refreshPushState()}
 function showPushControls(subscribed){
@@ -187,13 +209,20 @@ $('#account-button').addEventListener('click',async()=>{if(account){try{const re
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-toggle').addEventListener('click',()=>{registerMode=!registerMode;setLanguage(language)});
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/'+(registerMode?'register':'login'),{method:'POST',body:JSON.stringify({email:$('#auth-email').value,password:$('#auth-password').value})});signedIn(result)}catch(error){showStatus(error.message,true)}});
-$('#searches-list').addEventListener('click',async event=>{const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceUsd,minBedrooms:search.minBedrooms})){const field=$('#filters').elements.namedItem(name);if(field)field.value=value??''}navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-list').addEventListener('change',async event=>{const select=event.target.closest('[data-activity]');if(!select)return;const item=feed.find(entry=>String(entry.listing.id)===select.dataset.activity);try{await api('/listings/'+select.dataset.activity+'/activity',{method:'PATCH',body:JSON.stringify({status:select.value,note:item?.note||''})});if(item)item.status=select.value}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',async event=>{const button=event.target.closest('[data-note]');if(!button)return;const item=feed.find(entry=>String(entry.listing.id)===button.dataset.note);if(!item)return;const note=prompt(tr('notes'),item.note||'');if(note===null)return;try{await api('/listings/'+button.dataset.note+'/activity',{method:'PATCH',body:JSON.stringify({status:item.status,note})});item.note=note;showStatus(tr('saved'))}catch(error){showStatus(error.message,true)}});
 $('#enable-push').addEventListener('click',enablePush);
 $('#test-push').addEventListener('click',testPush);
 $('#disable-push').addEventListener('click',disablePush);
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').then(refreshPushState).catch(()=>{});
-setLanguage(language);loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){loadFeed();loadSearches()}
+function openFeedFromNotification(){if(view!=='feed')navigate('feed');else loadFeed()}
+window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','searches'].includes(next)&&next!==view)navigate(next)});
+window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)openFeedFromNotification()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&location.hash==='#feed'&&token)openFeedFromNotification()});
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
+  navigator.serviceWorker.register('./sw.js?v=20261019-push-feed1').then(refreshPushState).catch(()=>{});
+}
+setLanguage(language);loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}
 setInterval(()=>{if(token&&document.visibilityState==='visible')loadFeed()},60000);
