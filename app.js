@@ -29,12 +29,28 @@ if(new URLSearchParams(location.search).has('from-push')){feedStatus='';localSto
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showStatus(message,error=false){const node=$('#status');node.textContent=message;node.className='status'+(error?' error':'');node.hidden=false;clearTimeout(showStatus.timer);showStatus.timer=setTimeout(()=>node.hidden=true,6000)}
-async function api(path,options={}){const headers={'Content-Type':'application/json',...(options.headers||{})};if(token)headers.Authorization='Bearer '+token;let response;try{response=await fetch(API+path,{...options,headers})}catch{throw Error(tr('loadError'))}if(response.status===204)return null;const body=await response.json().catch(()=>({}));if(!response.ok)throw Error(body.detail||tr('loadError'));return body}
+async function api(path,options={}){
+  const method=(options.method||'GET').toUpperCase();
+  const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})};
+  const publicRead=method==='GET'&&(path==='/push/public-key'||/^\/listings(?:\?|\/\d+$|$)/.test(path));
+  if(token&&!publicRead)headers.Authorization='Bearer '+token;
+  let response;
+  for(let attempt=0;attempt<2;attempt++){
+    try{response=await fetch(API+path,{...options,headers})}
+    catch{if(method==='GET'&&attempt===0){await new Promise(resolve=>setTimeout(resolve,600));continue}throw Error(tr('loadError'))}
+    if(method==='GET'&&attempt===0&&[502,503,504].includes(response.status)){await new Promise(resolve=>setTimeout(resolve,600));continue}
+    break;
+  }
+  if(response.status===204)return null;
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(body.detail||tr('loadError'));
+  return body;
+}
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#auth-title').textContent=tr(registerMode?'register':'signIn');$('#auth-submit').textContent=tr(registerMode?'register':'signIn');$('#auth-toggle').textContent=tr(registerMode?'haveAccount':'createAccount');renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
 function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;return values}
 function query(values){return new URLSearchParams(values).toString()}
-async function loadListings(more=false){if(!more){offset=0;listings=[]}$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;try{const data=await api('/listings?'+query({...filters(),limit:30,offset}));listings=more?[...listings,...data.items]:data.items;total=data.total;offset=listings.length;renderListings()}catch(error){$('#listings-grid').innerHTML='';showStatus(error.message,true)}}
+async function loadListings(more=false){if(!more){offset=0;listings=[]}$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;try{const data=await api('/listings?'+query({...filters(),limit:30,offset}));listings=more?[...listings,...data.items]:data.items;total=data.total;offset=listings.length;renderListings()}catch(error){$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}}
 function sourceName(item){return {'myhome.ge':'MyHome.ge','ss.ge':'ss.ge','korter.ge':'Korter.ge'}[item.source]||item.source}
 function sourceLabel(item){return tr('openListing').replace('{source}',sourceName(item))}
 function phoneOnSource(item){return tr('contactOnSourceLabel').replace('{source}',sourceName(item))}
