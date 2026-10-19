@@ -13,6 +13,7 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil((async () => {
     const url = new URL(event.notification.data?.url || './#feed', self.registration.scope);
     if (url.origin !== self.location.origin) return;
+    url.searchParams.set('from-push', '1');
     const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     const existing = windows.find(window => new URL(window.url).origin === url.origin);
     if (existing) {

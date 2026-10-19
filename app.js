@@ -25,6 +25,7 @@ Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყვ
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], registerMode=false, feedRequestId=0;
 let feedStatus=['NEW','SAVED','CONTACTED','DISMISSED'].includes(localStorage.getItem('geoFeedStatus'))?localStorage.getItem('geoFeedStatus'):'', feedTotal=0, feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};
+if(new URLSearchParams(location.search).has('from-push')){feedStatus='';localStorage.setItem('geoFeedStatus','');history.replaceState(null,'',location.pathname+location.hash)}
 const $=s=>document.querySelector(s), tr=(k,...args)=>{const value=(words[language]||words.en)[k]??words.en[k]??k;return typeof value==='function'?value(...args):value};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showStatus(message,error=false){const node=$('#status');node.textContent=message;node.className='status'+(error?' error':'');node.hidden=false;clearTimeout(showStatus.timer);showStatus.timer=setTimeout(()=>node.hidden=true,6000)}
@@ -232,13 +233,13 @@ $('#feed-list').addEventListener('click',async event=>{const button=event.target
 $('#enable-push').addEventListener('click',enablePush);
 $('#test-push').addEventListener('click',testPush);
 $('#disable-push').addEventListener('click',disablePush);
-function openFeedFromNotification(){if(view!=='feed')navigate('feed');else loadFeed()}
+function openFeedFromNotification(){feedStatus='';feed=[];localStorage.setItem('geoFeedStatus','');if(view!=='feed')navigate('feed');else loadFeed()}
 window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','searches'].includes(next)&&next!==view)navigate(next)});
-window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)openFeedFromNotification()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&location.hash==='#feed'&&token)openFeedFromNotification()});
+window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&location.hash==='#feed'&&token)loadFeed()});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261019-push-feed1').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261019-feed-status2').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}
 setInterval(()=>{if(token&&document.visibilityState==='visible')loadFeed()},60000);
