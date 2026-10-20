@@ -42,7 +42,7 @@ Object.assign(words.ka,{username:'მომხმარებლის სახ
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let entryMode=localStorage.getItem('geoEntryMode')||(sessionStorage.getItem('geoGuestEntered')==='1'?'guest':''), workspaceStarted=false;
 let listingsLoading=false;
-let cities=[],cityLoadId=0,cityInitialized=false;
+let cities=[],cityLoadId=0,cityInitialized=false,citySelection=null;
 let view='listings', offset=0, total=0, listings=[], feed=[], searches=[], feedRequestId=0;
 let feedStatus=['NEW','SAVED','CONTACTED','DISMISSED'].includes(localStorage.getItem('geoFeedStatus'))?localStorage.getItem('geoFeedStatus'):'', feedTotal=0, feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};
 if(new URLSearchParams(location.search).has('from-push')){feedStatus='';localStorage.setItem('geoFeedStatus',feedStatus);history.replaceState(null,'',location.pathname+location.hash)}
@@ -69,18 +69,20 @@ async function api(path,options={}){
 function cityLabel(value){return cities.find(city=>city.value===value)?.name||value}
 function preserveUnknownCity(select,value){if(!value||[...select.options].some(option=>option.value===value))return;const option=document.createElement('option');option.value=value;option.textContent=cityLabel(value);option.dataset.legacy='true';select.append(option)}
 async function loadCities(){
-  const requestId=++cityLoadId,select=$('#filters').elements.namedItem('city'),selected=select.value,initialLoad=!cityInitialized;
+  const requestId=++cityLoadId,select=$('#filters').elements.namedItem('city'),selected=citySelection===null?select.value:citySelection,initialLoad=!cityInitialized;
   try{
     const result=await api('/locations/cities?language='+encodeURIComponent(language));
     if(requestId!==cityLoadId)return;
     cities=result.items||[];
     select.replaceChildren(new Option(tr('allCities'),''));
     for(const city of cities){const option=new Option(city.name,city.value);option.dataset.cityId=city.id;select.add(option)}
-    if(!cityInitialized&&!selected&&cities.some(city=>city.value==='tbilisi'))select.value='tbilisi';
-    else preserveUnknownCity(select,selected);
+    const defaulted=citySelection===null&&cities.some(city=>city.value==='tbilisi');
+    if(defaulted)citySelection='tbilisi';
+    preserveUnknownCity(select,citySelection??selected);
+    select.value=citySelection??selected;
     cityInitialized=true;
     renderSearches();
-    if(workspaceStarted&&initialLoad)loadListings();
+    if(workspaceStarted&&(initialLoad||defaulted))loadListings();
   }catch(error){if(requestId===cityLoadId){preserveUnknownCity(select,selected);cityInitialized=true;showStatus(tr('citiesUnavailable'),true);if(workspaceStarted&&initialLoad)loadListings()}}
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!account?.isAdmin;updateCurrencyUI();loadCities();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
@@ -333,6 +335,7 @@ $('#entry-language').addEventListener('change',event=>setLanguage(event.target.v
 $('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#filters').elements.namedItem('propertyType').addEventListener('change',syncPropertyFilters);
+$('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value});
 syncPropertyFilters();
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#load-more').addEventListener('click',()=>loadListings(true));
