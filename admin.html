@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Geo Realt · Администрирование</title><link rel="icon" href="./icon.png"><link rel="stylesheet" href="./styles.css?v=20261020-entry1"><link rel="stylesheet" href="./admin.css?v=20261020-entry1"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Geo Realt · Администрирование</title><link rel="icon" href="./icon.png"><link rel="stylesheet" href="./styles.css?v=20261020-entry1"><link rel="stylesheet" href="./admin.css?v=20261020-users3"></head>
 <body class="admin-page">
   <header class="admin-header"><a href="./"><img src="./icon.png" alt="" width="34" height="34">Geo Realt</a><span>Управление доступом</span><a href="./">К объявлениям ↗</a></header>
   <main class="admin-main">
@@ -8,5 +8,5 @@
     <div id="admin-status" role="status" hidden></div>
     <section class="admin-card"><h2>Новый пользователь</h2><p>Оставьте даты пустыми для бессрочного доступа. Можно указать только одну из них.</p><form id="new-user" class="admin-grid"><label>Логин<input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="off"></label><label>Пароль<input name="password" type="password" required minlength="4" autocomplete="new-password"></label><label>Дата начала<input name="startsAt" type="date"></label><label>Дата окончания<input name="expiresAt" type="date"></label><button class="primary-button" type="submit">Создать доступ</button></form></section>
     <section class="admin-card"><h2>Выданные доступы</h2><div id="admin-users"></div></section>
-  </main><script src="./admin.js?v=20261020-access2" defer></script>
+  </main><script src="./admin.js?v=20261020-users3" defer></script>
 </body></html>
