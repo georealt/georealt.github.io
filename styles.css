@@ -91,89 +91,34 @@ body.entered .entry-screen{display:none}
   .top-actions select{font-size:13px!important;padding:7px 6px}
 }
 
-/* Compact Geo Realt layout with a luxury property hero. */
+/* Compact workspace with a single panoramic hero. */
 :root{background:#f4f6f2;color:#18372f}
-.topbar{height:70px;padding:0 clamp(16px,3vw,38px);box-shadow:0 2px 12px #173a3008}
-.shell{grid-template-columns:218px minmax(0,1fr)}
-.sidebar{padding:25px 14px;background:#fbfcfa}
-.content{max-width:1320px;padding:28px clamp(18px,3vw,40px) 58px}
-.hero{min-height:270px;padding:34px 38px;border:1px solid #ffffff2c;border-radius:15px;background:#17314f;color:#fff;isolation:isolate;box-shadow:0 12px 30px #10294424}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#102136d9 0%,#102136ad 31%,#10213635 60%,#10213600 100%),linear-gradient(0deg,#10213635 0%,transparent 38%)}
-.hero::after{content:none}
-.hero-copy{position:relative;z-index:2;width:min(60%,680px)}
-.hero-kicker{color:#e7d3b5;font-size:10px;letter-spacing:1.8px;font-weight:800;text-transform:uppercase}
-.hero .hero-title{max-width:640px;margin:13px 0 9px;font-family:"Bodoni 72","Didot","Times New Roman",Georgia,serif;font-size:clamp(38px,4.4vw,56px);font-weight:600;letter-spacing:.035em;line-height:1.02;text-transform:uppercase;text-wrap:balance;color:#fff}
-.hero p{max-width:435px;margin:0;color:#f4f5f7;font-size:15px;line-height:1.55}
-.hero-art{position:absolute;inset:0;z-index:0;width:100%;overflow:hidden}
-.hero-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 54%;display:block}
-.filter-card{margin-top:20px;padding:20px 22px 21px;border-radius:14px;box-shadow:0 7px 24px #18372d0a}
-.filter-grid{gap:10px;margin-top:16px}
-.filter-grid label{gap:6px;font-size:10px}
-.filter-grid input,.filter-grid select{height:39px;border-radius:9px}
-.primary-button{height:39px;border-radius:9px}
-.results-head{margin:26px 0 14px}
-.listing-grid{gap:14px}
-.listing-card{border-radius:13px;box-shadow:0 5px 18px #18372d0b}
-.card-image{height:176px}
-.card-body{padding:15px 16px 14px}
-.feed-item,.search-item{border-radius:13px;box-shadow:0 4px 16px #18372d08}
-@media(max-width:900px){
-  .hero{min-height:240px;padding:28px}
-  .hero-copy{width:65%}
-  .hero::before{background:linear-gradient(90deg,#102136d9 0%,#102136a8 38%,#10213628 72%,#10213600 100%),linear-gradient(0deg,#1021363d 0%,transparent 40%)}
-}
-@media(max-width:760px){
-  .topbar{height:62px}
-  .content{padding:13px 14px 86px}
-  .hero{min-height:174px;padding:19px 18px;border-radius:13px}
-  .hero::before{background:linear-gradient(90deg,#102136d9 0%,#102136b8 43%,#10213670 71%,#10213635 100%),linear-gradient(0deg,#10213635 0%,transparent 45%)}
-  .hero-copy{width:92%}
-  .hero-kicker{font-size:9px;letter-spacing:1.35px}
-  .hero .hero-title{max-width:100%;font-size:clamp(27px,7vw,35px);letter-spacing:.025em;margin:9px 0 7px}
-  .hero p{max-width:255px;font-size:12px;line-height:1.45}
-  .hero-image{object-position:86% center}
-  .filter-card{margin-top:14px;padding:16px 14px;border-radius:13px}
-  .filter-grid{margin-top:13px;gap:9px}
-  .results-head{margin:22px 0 12px}
-  .listing-grid{gap:11px}
-  .card-image{height:140px}
-}
-@media(max-width:400px){
-  .hero{min-height:164px;padding:17px 15px}
-  .hero-copy{width:100%}
-  .hero .hero-title{font-size:clamp(25px,7.3vw,30px)}
-  .hero p{max-width:235px;font-size:11px}
-  .hero-image{object-position:90% center}
-}
-
-
-/* Reference-matched editorial real-estate hero. */
-.topbar{background:#17324f;border-bottom-color:#284664}
+.topbar{height:70px;padding:0 clamp(16px,3vw,38px);background:linear-gradient(105deg,#282826 0%,#243641 38%,#27678d 76%,#3186b8 100%);border-bottom-color:#ffffff20;box-shadow:0 2px 12px #10294412}
 .topbar .brand strong{color:#fff}
 .topbar .brand small,.topbar .live-label{color:#d1dce7}
 .topbar .top-actions select{border-color:#ffffff35;background:#ffffff12;color:#fff}
 .topbar .top-actions select option{color:#18334f;background:#fff}
 .topbar .account-button{border-color:#ffffff55;background:transparent;color:#fff}
 .topbar .live-dot{background:#a7d6a9;box-shadow:0 0 0 4px #a7d6a922}
-.hero{min-height:270px;padding:34px 38px;border:1px solid #ffffff30;border-radius:12px;background:#17314f;color:#fff;isolation:isolate;box-shadow:0 12px 30px #10294424}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#102136e8 0%,#102136b8 29%,#10213655 49%,#1021360a 70%,transparent 100%),linear-gradient(0deg,#10213650 0%,transparent 43%)}
+.shell{grid-template-columns:218px minmax(0,1fr)}
+.sidebar{padding:25px 14px;background:#fbfcfa}
+.content{max-width:1320px;padding:28px clamp(18px,3vw,40px) 58px}
+.hero{min-height:270px;padding:34px 38px;border:1px solid #ffffff30;border-radius:12px;background:#2a739e;color:#fff;isolation:isolate;box-shadow:0 12px 30px #10294424}
+/* Blue shade behind the copy fades into the bright photo; the lower edge has the reference's warm dusk gradient. */
+.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(18,39,51,.86) 0%,rgba(23,49,64,.67) 25%,rgba(29,65,87,.23) 48%,rgba(36,89,126,.03) 70%,transparent 100%),linear-gradient(0deg,rgba(14,23,29,.48) 0%,rgba(94,73,51,.13) 29%,transparent 62%),linear-gradient(180deg,rgba(32,100,149,.16),transparent 46%)}
 .hero::after{content:none}
 .hero-copy{position:relative;z-index:2;width:min(63%,680px)}
 .hero-kicker{color:#ead6b8;font-size:10px;letter-spacing:1.8px;font-weight:800;text-transform:uppercase}
 .hero .hero-title{max-width:680px;margin:13px 0 9px;font-family:"Bodoni 72","Didot","Times New Roman",Georgia,serif;font-size:clamp(38px,4.4vw,56px);font-weight:600;letter-spacing:.035em;line-height:1.02;text-transform:uppercase;text-wrap:balance;color:#fff;text-shadow:0 2px 12px #07152580}
 .hero p{max-width:435px;margin:0;color:#f4f5f7;font-size:15px;line-height:1.55;text-shadow:0 1px 8px #07152580}
-.hero-art{position:absolute;inset:0 13.5% 0 0;z-index:0;width:auto;overflow:hidden}
+.hero-art{position:absolute;inset:0;z-index:0;width:100%;overflow:hidden}
 .hero-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 54%;display:block}
-.hero-side-card{position:absolute;inset:0 0 0 auto;z-index:2;width:13.5%;padding:12px 11px 8px;background:#fbfaf8;border-left:1px solid #a96068;display:flex;flex-direction:column;gap:7px}
-.hero-side-image{display:block;width:100%;height:calc(100% - 30px);object-fit:cover;object-position:86% center;border:1px solid #d9c4bd}
-.hero-side-caption{height:23px;display:grid;place-items:center;color:#32445b;font-size:8px;letter-spacing:.7px;font-weight:800;text-align:center;white-space:nowrap}
-.hero-side-caption::after{content:"";position:absolute;bottom:9px;width:25px;height:2px;background:#ad2637}
 .hero-cta{height:39px;margin-top:16px;padding:0 21px;border:0;border-radius:2px;background:#a92332;color:#fff;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.35px;box-shadow:0 8px 18px #081a2a44}
 .hero-cta:hover{background:#8f1c29}
 .filter-card{margin-top:20px;padding:20px 22px 21px;border-radius:14px;box-shadow:0 7px 24px #18372d0a}
 .filter-grid{gap:10px;margin-top:16px}
 .filter-grid label{gap:6px;font-size:10px}
-.filter-grid input,.filter-grid select,.primary-button{height:39px}
+.filter-grid input,.filter-grid select,.primary-button{height:39px;border-radius:9px}
 .results-head{margin:26px 0 14px}
 .listing-grid{gap:14px}
 .listing-card{border-radius:13px;box-shadow:0 5px 18px #18372d0b}
@@ -183,23 +128,18 @@ body.entered .entry-screen{display:none}
 @media(max-width:900px){
  .hero{min-height:240px;padding:28px}
  .hero-copy{width:66%}
- .hero::before{background:linear-gradient(90deg,#102136e8 0%,#102136b8 33%,#10213655 53%,#10213608 75%,transparent 100%),linear-gradient(0deg,#10213650 0%,transparent 43%)}
- .hero-side-card{width:15%}
- .hero-art{right:15%}
 }
 @media(max-width:760px){
  .topbar{height:62px}
  .content{padding:13px 14px 86px}
  .hero{min-height:184px;padding:19px 18px;border-radius:12px}
- .hero::before{background:linear-gradient(90deg,#102136e8 0%,#102136c4 36%,#10213676 54%,#10213625 73%,#10213605 100%),linear-gradient(0deg,#10213638,transparent 48%)}
+ .hero::before{background:linear-gradient(90deg,rgba(18,39,51,.87) 0%,rgba(23,49,64,.68) 34%,rgba(29,65,87,.28) 60%,rgba(36,89,126,.03) 85%,transparent 100%),linear-gradient(0deg,rgba(14,23,29,.43) 0%,rgba(94,73,51,.1) 30%,transparent 65%),linear-gradient(180deg,rgba(32,100,149,.13),transparent 46%)}
  .hero-copy{width:100%;max-width:500px}
  .hero-kicker{font-size:9px;letter-spacing:1.35px}
  .hero .hero-title{max-width:100%;font-size:clamp(27px,7vw,35px);letter-spacing:.025em;margin:9px 0 7px}
  .hero p{max-width:255px;font-size:12px;line-height:1.45}
  .hero-cta{height:34px;margin-top:11px;padding:0 15px;font-size:10px}
- .hero-art{inset:0;width:100%}
  .hero-image{object-position:86% center}
- .hero-side-card{display:none}
  .filter-card{margin-top:14px;padding:16px 14px;border-radius:13px}
  .filter-grid{margin-top:13px;gap:9px}
  .results-head{margin:22px 0 12px}
@@ -209,7 +149,6 @@ body.entered .entry-screen{display:none}
 @media(max-width:400px){
  .top-actions{gap:4px}.top-actions select{padding:7px 5px}
  .hero{min-height:174px;padding:16px 14px}
- .hero-copy{width:100%}
  .hero .hero-title{font-size:clamp(25px,7.3vw,30px)}
  .hero p{max-width:235px;font-size:11px}
  .hero-image{object-position:90% center}
