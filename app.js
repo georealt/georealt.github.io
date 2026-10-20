@@ -8,6 +8,9 @@ const words = {
 };
 
 // Shared commercial taxonomy in all interface languages.
+Object.assign(words.en,{heroRegion:'Georgia',heroRegionSub:'One property radar',heroSources:'4 sources',heroSourcesSub:'Checked regularly'});
+Object.assign(words.ru,{heroRegion:'Грузия',heroRegionSub:'Недвижимость в одном месте',heroSources:'4 источника',heroSourcesSub:'Регулярное обновление'});
+Object.assign(words.ka,{heroRegion:'საქართველო',heroRegionSub:'უძრავი ქონება ერთ სივრცეში',heroSources:'4 წყარო',heroSourcesSub:'რეგულარულად ახლდება'});
 Object.assign(words.en,{"commercial": "Commercial", "purpose": "Purpose", "OFFICE": "Office", "RETAIL": "Retail", "WAREHOUSE": "Warehouse", "INDUSTRIAL": "Industrial", "FOOD_SERVICE": "Food service", "HOTEL": "Hotel", "OTHER": "Other / general", "minArea": "Area from · m²", "maxArea": "Area to · m²", "floor": "Floor"});
 Object.assign(words.ru,{"type": "Тип недвижимости", "commercial": "Коммерческая", "purpose": "Назначение", "OFFICE": "Офис", "RETAIL": "Торговля", "WAREHOUSE": "Склад", "INDUSTRIAL": "Производство", "FOOD_SERVICE": "Общепит", "HOTEL": "Гостиница", "OTHER": "Другое / универсальное", "minArea": "Площадь от · м²", "maxArea": "Площадь до · м²", "floor": "Этаж"});
 Object.assign(words.ka,{"commercial": "კომერციული", "purpose": "დანიშნულება", "OFFICE": "ოფისი", "RETAIL": "სავაჭრო", "WAREHOUSE": "საწყობი", "INDUSTRIAL": "საწარმოო", "FOOD_SERVICE": "კვების ობიექტი", "HOTEL": "სასტუმრო", "OTHER": "სხვა / უნივერსალური", "minArea": "ფართობი მინ. · მ²", "maxArea": "ფართობი მაქს. · მ²", "floor": "სართული"});Object.assign(words.en,{owner:'Owner',agent:'Agent',agency:'Agent',call:'Call',shortDescription:'Short description',contactOnSource:'Phone on MyHome ↗',contactOnSs:'Phone on ss.ge ↗',openListing:'Open listing on {source}',sourceFilter:'Source',allSources:'All sources',previousPhoto:'Previous photo',nextPhoto:'Next photo'});
