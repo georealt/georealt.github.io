@@ -176,3 +176,27 @@ body.entered .entry-screen{display:none}
 .hero-art{z-index:1}
 @media(max-width:760px){.hero-title{font-size:clamp(26px,7vw,35px)!important;letter-spacing:.035em!important}.hero::after{right:-50px;top:-62px;width:175px;height:175px}}
 @media(max-width:400px){.hero-title{font-size:clamp(24px,7.4vw,30px)!important}}
+
+/* RAL 4009 Pastel Violet with a complete glass illustration on mobile. */
+.hero{background-color:#A38995;background-image:radial-gradient(ellipse at 78% 24%,#f9eef72b,transparent 37%);color:#30252f}
+.hero::before{background:linear-gradient(90deg,#A3899500 0%,#A3899500 48%,#72596712 100%)}
+.hero-kicker{color:#493744}
+.hero-kicker-dot{background:#594250;box-shadow:0 0 0 4px #fff4}
+.hero h1,.hero .hero-title{color:#30252f}
+.hero p{color:#493b46}
+.hero-art-glow{background:radial-gradient(circle at 48% 42%,#fff9ff65 0,#eee0eb47 42%,#eee0eb00 73%);border-color:#fff9ff99;box-shadow:0 0 28px #fff8,inset 0 0 42px #fff6,0 0 0 20px #fff3,0 0 0 42px #fff2}
+.hero::after{border-color:#fff9ff9c;background:linear-gradient(145deg,#ffffff52,#f8edf52b 52%,#fff0);box-shadow:inset 0 0 34px #fff7,0 0 0 1px #fff3,0 12px 36px #553d4b24;backdrop-filter:blur(8px)}
+@media(max-width:760px){
+  .hero{background-image:radial-gradient(ellipse at 80% 48%,#f9eef744,transparent 43%)}
+  .hero::before{background:linear-gradient(90deg,#A38995 0%,#A38995f2 43%,#A3899540 100%)}
+  .hero::after{width:136px;height:136px;right:12px;top:50%;transform:translateY(-50%)}
+  .hero-art{width:66%;right:0;opacity:1}
+  .hero-art-glow{width:138px;height:138px;right:22px;top:50%;transform:translateY(-50%);box-shadow:0 0 22px #fff8,inset 0 0 32px #fff7,0 0 0 14px #fff3,0 0 0 29px #fff2}
+  .hero-city{width:100%;max-width:none;right:0;bottom:50%;transform:translateY(50%);filter:drop-shadow(0 9px 20px #49354138)}
+}
+@media(max-width:400px){
+  .hero::after{width:118px;height:118px;right:8px}
+  .hero-art{width:64%}
+  .hero-art-glow{width:118px;height:118px;right:11px}
+  .hero-city{width:100%;right:0}
+}
