@@ -74,3 +74,19 @@ body.entered .entry-screen{display:none}
 @media(max-width:760px){input,select,textarea{font-size:16px!important;font-weight:400!important}}
 
 .card-details{flex-wrap:wrap;row-gap:8px}
+
+/* Mobile form controls: keep long choices readable and prevent inherited bold text. */
+@media(max-width:760px){
+  input,textarea,.filter-grid select,.entry-top select,.feed-filter select,.feed-actions select,dialog select{
+    font-family:inherit!important;font-size:16px!important;font-weight:400!important;min-width:0;max-width:100%;
+  }
+  .filter-grid label:has(select){grid-column:1/-1}
+  .filter-grid label:nth-child(5),.filter-grid .search-button{grid-column:1/-1}
+  .filter-grid input{width:100%;font-family:inherit!important;font-size:16px!important;font-weight:400!important}
+  .top-actions select{font-size:14px!important;font-weight:600!important;max-width:none;padding:7px 8px}
+  .feed-actions select{max-width:min(100%,240px);flex:0 1 240px}
+  .feed-filter select{flex:1 1 auto}
+}
+@media(max-width:400px){
+  .top-actions select{font-size:13px!important;padding:7px 6px}
+}
