@@ -68,22 +68,40 @@ async function api(path,options={}){
 }
 function cityLabel(value){return cities.find(city=>city.value===value)?.name||value}
 function preserveUnknownCity(select,value){if(!value||[...select.options].some(option=>option.value===value))return;const option=document.createElement('option');option.value=value;option.textContent=cityLabel(value);option.dataset.legacy='true';select.append(option)}
+function applyCityCatalog(items,select,selected){
+  cities=items;
+  select.replaceChildren(new Option(tr('allCities'),''));
+  for(const city of cities){const name=city.names?.[language]||city.name;const option=new Option(name,city.value);option.dataset.cityId=city.id;select.add(option)}
+  const defaulted=citySelection===null&&cities.some(city=>city.value==='tbilisi');
+  if(defaulted)citySelection='tbilisi';
+  preserveUnknownCity(select,citySelection??selected);
+  select.value=citySelection??selected;
+  cityInitialized=true;
+  renderSearches();
+  return defaulted;
+}
 async function loadCities(){
   const requestId=++cityLoadId,select=$('#filters').elements.namedItem('city'),selected=citySelection===null?select.value:citySelection,initialLoad=!cityInitialized;
   try{
     const result=await api('/locations/cities?language='+encodeURIComponent(language));
     if(requestId!==cityLoadId)return;
-    cities=result.items||[];
-    select.replaceChildren(new Option(tr('allCities'),''));
-    for(const city of cities){const option=new Option(city.name,city.value);option.dataset.cityId=city.id;select.add(option)}
-    const defaulted=citySelection===null&&cities.some(city=>city.value==='tbilisi');
-    if(defaulted)citySelection='tbilisi';
-    preserveUnknownCity(select,citySelection??selected);
-    select.value=citySelection??selected;
-    cityInitialized=true;
-    renderSearches();
+    if(!Array.isArray(result.items)||!result.items.length)throw Error(tr('citiesUnavailable'));
+    const defaulted=applyCityCatalog(result.items||[],select,selected);
     if(workspaceStarted&&(initialLoad||defaulted))loadListings();
-  }catch(error){if(requestId===cityLoadId){preserveUnknownCity(select,selected);cityInitialized=true;showStatus(tr('citiesUnavailable'),true);if(workspaceStarted&&initialLoad)loadListings()}}
+  }catch(error){
+    if(requestId!==cityLoadId)return;
+    try{
+      const fallback=await fetch('./cities.json',{cache:'no-cache'});
+      if(!fallback.ok)throw Error('City catalog unavailable');
+      const result=await fallback.json();
+      if(requestId!==cityLoadId)return;
+      if(!Array.isArray(result.items)||!result.items.length)throw Error('City catalog unavailable');
+      const defaulted=applyCityCatalog(result.items||[],select,selected);
+      if(workspaceStarted&&(initialLoad||defaulted))loadListings();
+    }catch(fallbackError){
+      if(requestId===cityLoadId){preserveUnknownCity(select,selected);showStatus(tr('citiesUnavailable'),true);if(workspaceStarted&&initialLoad)loadListings()}
+    }
+  }
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!account?.isAdmin;updateCurrencyUI();loadCities();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
