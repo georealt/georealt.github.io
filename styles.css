@@ -65,6 +65,9 @@ body.entered .entry-screen{display:none}
 .photo-step:disabled{display:none}
 .photo-count{padding:12px 16px;text-align:center;font-size:13px;font-weight:800}
 .feed-filter{display:flex;align-items:center;gap:10px;margin:0 0 15px;color:#65727a;font-size:12px;font-weight:800}
+.feed-filters{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.feed-filters .feed-filter{min-width:min(320px,100%)}
+.feed-filters .feed-filter select{min-width:180px}
 .feed-filter select{min-height:38px;max-width:100%;border:1px solid #dbe1e5;border-radius:9px;background:#fff;color:#253e4e;padding:7px 11px;font-size:12px;font-weight:700}
 
 .source-mark.realting-mark{background:#267d88}
@@ -86,6 +89,8 @@ body.entered .entry-screen{display:none}
   .top-actions select{font-size:14px!important;font-weight:600!important;max-width:none;padding:7px 8px}
   .feed-actions select{max-width:min(100%,240px);flex:0 1 240px}
   .feed-filter select{flex:1 1 auto}
+  .feed-filters{display:grid;grid-template-columns:1fr;gap:0}
+  .feed-filters .feed-filter{min-width:0}
 }
 @media(max-width:400px){
   .top-actions select{font-size:13px!important;padding:7px 6px}
