@@ -158,7 +158,7 @@ async function loadCities(){
   }
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
-function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
+function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
 Object.assign(words.ka,{minFloor:'სართული მინ.',maxFloor:'სართული მაქს.'});
