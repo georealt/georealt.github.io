@@ -165,7 +165,7 @@ async function loadCities(){
   }
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
-function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')window.scrollTo({top:0,behavior:'smooth'});if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
+function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')$('.filter-card').scrollIntoView({behavior:'smooth',block:'start'});if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
 Object.assign(words.ka,{minFloor:'სართული მინ.',maxFloor:'სართული მაქს.'});
@@ -463,7 +463,7 @@ window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed(
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown3').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown4').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
