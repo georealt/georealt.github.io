@@ -37,9 +37,9 @@ Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყვ
 Object.assign(words.en,{searchFilter:'Search',allSearches:'All searches'});
 Object.assign(words.ru,{searchFilter:'Поиск',allSearches:'Все поиски'});
 Object.assign(words.ka,{searchFilter:'ძიება',allSearches:'ყველა ძიება'});
-Object.assign(words.en,{sourceFilter:'Sources',allSourcesHint:'Choose any number; leave empty for all sources'});
-Object.assign(words.ru,{sourceFilter:'Источники',allSourcesHint:'Выберите нужные или оставьте пустым, чтобы искать везде'});
-Object.assign(words.ka,{sourceFilter:'წყაროები',allSourcesHint:'აირჩიეთ სასურველი წყაროები, ან დატოვეთ ცარიელი ყველასთვის'});
+Object.assign(words.en,{sourceFilter:'Sources',allSources:'All sources',sourceCount:n=>`${n} sources`});
+Object.assign(words.ru,{sourceFilter:'Источники',allSources:'Все источники',sourceCount:n=>`${n} ${n%10===1&&n%100!==11?'источник':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'источника':'источников'}`});
+Object.assign(words.ka,{sourceFilter:'წყაროები',allSources:'ყველა წყარო',sourceCount:n=>`${n} წყარო`});
 Object.assign(words.en,{currencyLabel:'Price currency',maxPrice:'Max price · {currency}',minPrice:'Min price · {currency}',priceRange:'Minimum price must not exceed maximum.',fxNote:'NBG conversion only when the source has no GEL price',fxUnavailable:'GEL conversion is temporarily unavailable. Prices are shown in USD.'});
 Object.assign(words.ru,{currencyLabel:'Валюта цен',maxPrice:'Цена до · {currency}',minPrice:'Цена от · {currency}',priceRange:'Цена от не может быть выше цены до.',fxNote:'Если нет цены GEL у источника — пересчёт по НБГ',fxUnavailable:'Пересчёт в GEL временно недоступен. Цены показаны в USD.'});
 Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPrice:'მაქს. ფასი · {currency}',minPrice:'მინ. ფასი · {currency}',priceRange:'მინიმალური ფასი მაქსიმალურზე მეტი არ უნდა იყოს.',fxNote:'თუ წყაროს GEL ფასი არ აქვს — სებ-ის კურსი',fxUnavailable:'GEL-ში კონვერტაცია დროებით მიუწვდომელია. ფასები ნაჩვენებია USD-ში.'});
@@ -164,7 +164,7 @@ async function loadCities(){
     }
   }
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
@@ -184,7 +184,7 @@ function syncBedroomsRange(){
   maximum.setCustomValidity(minimum.value!==''&&maximum.value!==''&&Number(minimum.value)>Number(maximum.value)?tr('bedroomsRange'):'');
 }
 function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(key!=='sources'&&value!=='')values[key]=value;values.sources=form.getAll('sources');if(currency==='GEL'){if(values.minPriceUsd){values.minPriceGel=values.minPriceUsd;delete values.minPriceUsd}if(values.maxPriceUsd){values.maxPriceGel=values.maxPriceUsd;delete values.maxPriceUsd}}return values}
-function syncSources(selected=[]){const values=selected?.length?selected:[];document.querySelectorAll('#filters input[name="sources"]').forEach(input=>{input.checked=values.includes(input.value)})}
+function syncSources(selected=[]){const values=selected?.length?selected:[];document.querySelectorAll('#filters input[name="sources"]').forEach(input=>{input.checked=values.includes(input.value)});$('#source-all').checked=values.length===0;$('#source-summary-label').textContent=values.length?values.length===1?values[0]:tr('sourceCount',values.length):tr('allSources')}
 function syncPriceRange(){const form=$('#filters'),minimum=form.elements.namedItem('minPriceUsd'),maximum=form.elements.namedItem('maxPriceUsd');maximum.setCustomValidity(minimum.value!==''&&maximum.value!==''&&Number(minimum.value)>Number(maximum.value)?tr('priceRange'):'')}
 function displayAmount(usd){return currency==='GEL'?Number(usd)*exchangeRate.usdGel:Number(usd)}
 function money(usd,gel=null){
@@ -432,6 +432,8 @@ $('#language').addEventListener('change',event=>setLanguage(event.target.value))
 $('#entry-language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
+$('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
+document.addEventListener('click',event=>{const dropdown=$('#source-dropdown');if(dropdown.open&&!dropdown.contains(event.target))dropdown.open=false});
 $('#filters').elements.namedItem('propertyType').addEventListener('change',syncPropertyFilters);
 $('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value;districtSelection='';const select=$('#filters').elements.namedItem('district');select.replaceChildren(new Option(tr('allDistricts'),''));select.disabled=!citySelection;loadDistricts('')});
 $('#filters').elements.namedItem('district').addEventListener('change',event=>{districtSelection=event.target.value});
@@ -461,7 +463,7 @@ window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed(
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261021-multisource1').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown1').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
