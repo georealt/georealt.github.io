@@ -165,7 +165,7 @@ async function loadCities(){
   }
 }
 function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
-function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
+function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')window.scrollTo({top:0,behavior:'smooth'});if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
 Object.assign(words.ka,{minFloor:'სართული მინ.',maxFloor:'სართული მაქს.'});
@@ -441,7 +441,7 @@ for(const name of ['minBedrooms','maxBedrooms'])$('#filters').elements.namedItem
 for(const name of ['minPriceUsd','maxPriceUsd'])$('#filters').elements.namedItem(name).addEventListener('input',syncPriceRange);
 syncPropertyFilters();syncPriceRange();
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
-$('#hero-browse').addEventListener('click',()=>$('#filters').scrollIntoView({behavior:'smooth',block:'center'}));
+$('#hero-browse').addEventListener('click',()=>$('.filter-card').scrollIntoView({behavior:'smooth',block:'start'}));
 $('#load-more').addEventListener('click',()=>loadListings(true));
 $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const selected=filters(),number=name=>selected[name]!=null?Number(selected[name]):null;const name=prompt(tr('searchName'),[selected.city,selected.operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...selected,minPriceUsd:number('minPriceUsd'),maxPriceUsd:number('maxPriceUsd'),minPriceGel:number('minPriceGel'),maxPriceGel:number('maxPriceGel'),minBedrooms:number('minBedrooms'),maxBedrooms:number('maxBedrooms'),minAreaM2:number('minAreaM2'),maxAreaM2:number('maxAreaM2'),minFloor:number('minFloor'),maxFloor:number('maxFloor')})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
@@ -463,7 +463,7 @@ window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed(
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown2').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown3').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
