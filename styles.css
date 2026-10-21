@@ -69,7 +69,7 @@ body.entered .entry-screen{display:none}
 .feed-filters .feed-filter{min-width:min(320px,100%)}
 .feed-filters .feed-filter select{min-width:180px}
 .feed-filter select{min-height:38px;max-width:100%;border:1px solid #dbe1e5;border-radius:9px;background:#fff;color:#253e4e;padding:7px 11px;font-size:12px;font-weight:700}
-.source-filter{position:relative;z-index:4;display:grid;align-content:start;gap:6px;min-width:0}
+.source-filter{grid-column:1/-1;position:relative;z-index:4;display:grid;align-content:start;gap:6px;min-width:0}
 .source-picker-title{color:#65727a;font-size:10px;font-weight:800}
 .source-dropdown{position:relative;min-width:0}
 .source-dropdown>summary{height:41px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px;border:1px solid #e1e5e8;border-radius:8px;background:#fafcfd;color:#253e4e;font-size:12px;font-weight:700;cursor:pointer;list-style:none;outline:none}
