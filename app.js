@@ -37,6 +37,12 @@ Object.assign(words.ka,{statusFilter:'სტატუსი',allStatuses:'ყვ
 Object.assign(words.en,{currencyLabel:'Price currency',maxPrice:'Max price · {currency}',fxNote:'NBG conversion only when the source has no GEL price',fxUnavailable:'GEL conversion is temporarily unavailable. Prices are shown in USD.'});
 Object.assign(words.ru,{currencyLabel:'Валюта цен',maxPrice:'Цена до · {currency}',fxNote:'Если нет цены GEL у источника — пересчёт по НБГ',fxUnavailable:'Пересчёт в GEL временно недоступен. Цены показаны в USD.'});
 Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPrice:'მაქს. ფასი · {currency}',fxNote:'თუ წყაროს GEL ფასი არ აქვს — სებ-ის კურსი',fxUnavailable:'GEL-ში კონვერტაცია დროებით მიუწვდომელია. ფასები ნაჩვენებია USD-ში.'});
+
+Object.assign(words.en,{district:'District',allDistricts:'All districts',chooseCity:'Select a city first',noDistricts:'No districts for this city',districtsUnavailable:'Could not load districts. Please try again.',maxBedrooms:'Max bedrooms',bedroomsRange:'Maximum bedrooms must be at least the minimum.'});
+Object.assign(words.ru,{district:'Район',allDistricts:'Все районы',chooseCity:'Сначала выберите город',noDistricts:'Для этого города районов нет',districtsUnavailable:'Не удалось загрузить районы. Повторите попытку.',maxBedrooms:'Спален до',bedroomsRange:'Спален до должно быть не меньше, чем спален от.'});
+Object.assign(words.ka,{district:'უბანი',allDistricts:'ყველა უბანი',chooseCity:'ჯერ აირჩიეთ ქალაქი',noDistricts:'ამ ქალაქისთვის უბნები არ არის',districtsUnavailable:'უბნები ვერ ჩაიტვირთა. სცადეთ ხელახლა.',maxBedrooms:'საძინებლები მაქს.',bedroomsRange:'საძინებლების მაქსიმუმი მინიმუმზე ნაკლები არ უნდა იყოს.'});
+let districtSelection='',districtLoadId=0,districtFallback=null;
+const districtCatalogs=new Map();
 let currency='USD', exchangeRate=null;
 const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
 Object.assign(words.en,{username:'Username',entryTitle:'Your property radar',entryIntro:'Sign in with the username and password provided to you.',guest:'Guest',admin:'Admin',invalidCredentials:'Invalid username or password.',accessPaused:'Access is paused.',accessExpired:'Your access period has ended.',accessNotStarted:'Your access period has not started yet.'});
@@ -56,7 +62,7 @@ function showStatus(message,error=false){const node=$('#status');node.textConten
 async function api(path,options={}){
   const method=(options.method||'GET').toUpperCase();
   const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})};
-  const publicRead=method==='GET'&&(path==='/push/public-key'||path==='/exchange-rates'||path.startsWith('/locations/cities')||/^\/listings(?:\?|\/\d+$|$)/.test(path));
+  const publicRead=method==='GET'&&(path==='/push/public-key'||path==='/exchange-rates'||path.startsWith('/locations/')||/^\/listings(?:\?|\/\d+$|$)/.test(path));
   if(token&&!publicRead)headers.Authorization='Bearer '+token;
   let response;
   for(let attempt=0;attempt<2;attempt++){
@@ -70,6 +76,49 @@ async function api(path,options={}){
   if(!response.ok)throw Error(body.detail||tr('loadError'));
   return body;
 }
+function districtLabel(value,city,names={}){return names?.[language]||districtCatalogs.get(city)?.find(item=>item.value===value)?.names?.[language]||value}
+function applyDistrictCatalog(items,select,selected,city){
+  districtCatalogs.set(city,items);
+  select.replaceChildren(new Option(tr(items.length?'allDistricts':'noDistricts'),''));
+  for(const row of items){
+    if(row.parentValue)continue;
+    const children=items.filter(item=>item.parentValue===row.value);
+    let target=select;
+    if(children.length){target=document.createElement('optgroup');target.label=row.names?.[language]||row.name;select.append(target);}
+    target.append(new Option(row.names?.[language]||row.name,row.value));
+    for(const child of children)target.append(new Option(child.names?.[language]||child.name,child.value));
+  }
+  if(selected&&![...select.options].some(option=>option.value===selected))select.add(new Option(districtLabel(selected,city),selected));
+  select.value=selected||'';districtSelection=select.value;
+  select.disabled=!items.length&&!selected;
+  select.removeAttribute('aria-busy');renderSearches();
+}
+async function loadDistricts(selected=districtSelection){
+  const requestId=++districtLoadId,form=$('#filters'),select=form.elements.namedItem('district'),city=form.elements.namedItem('city').value;
+  districtSelection=city?(selected||''):'';
+  if(!city){select.replaceChildren(new Option(tr('chooseCity'),''));select.disabled=true;select.removeAttribute('aria-busy');return}
+  select.setAttribute('aria-busy','true');
+  try{
+    const result=await api('/locations/districts?'+query({city,language}));
+    if(requestId!==districtLoadId)return;
+    if(!Array.isArray(result.items))throw Error(tr('districtsUnavailable'));
+    applyDistrictCatalog(result.items,select,districtSelection,city);
+  }catch(error){
+    if(requestId!==districtLoadId)return;
+    try{
+      if(!districtFallback)districtFallback=fetch('./districts.json',{cache:'no-cache'}).then(response=>{if(!response.ok)throw Error();return response.json()}).catch(error=>{districtFallback=null;throw error});
+      const result=await districtFallback;
+      if(requestId!==districtLoadId)return;
+      const items=result.cities?.[city]?.districts;
+      if(!Array.isArray(items))throw Error();
+      applyDistrictCatalog(items,select,districtSelection,city);
+    }catch{
+      if(requestId!==districtLoadId)return;
+      select.removeAttribute('aria-busy');showStatus(tr('districtsUnavailable'),true);
+      if(!select.options.length)select.add(new Option(tr('allDistricts'),''));
+    }
+  }
+}
 function cityLabel(value){return cities.find(city=>city.value===value)?.name||value}
 function preserveUnknownCity(select,value){if(!value||[...select.options].some(option=>option.value===value))return;const option=document.createElement('option');option.value=value;option.textContent=cityLabel(value);option.dataset.legacy='true';select.append(option)}
 function applyCityCatalog(items,select,selected){
@@ -81,6 +130,7 @@ function applyCityCatalog(items,select,selected){
   preserveUnknownCity(select,citySelection??selected);
   select.value=citySelection??selected;
   cityInitialized=true;
+  loadDistricts();
   renderSearches();
   return defaulted;
 }
@@ -107,7 +157,7 @@ async function loadCities(){
     }
   }
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();loadCities();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncBedroomsRange();loadCities();renderListings();renderFeed();renderSearches();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function navigate(next){view=next;for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='feed')loadFeed();if(next==='searches')loadSearches()}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
@@ -117,8 +167,14 @@ function syncPropertyFilters(){
   const apartment=form.elements.namedItem('propertyType').value==='APARTMENT';
   for(const name of ['minFloor','maxFloor']){const field=form.elements.namedItem(name);field.disabled=!apartment;field.closest('label').hidden=!apartment;if(!apartment)field.value=''}
   $('#commercial-purpose').hidden=!commercial;form.elements.namedItem('commercialType').disabled=!commercial;
-  $('#bedrooms-filter').hidden=commercial;form.elements.namedItem('minBedrooms').disabled=commercial;
-  if(commercial)form.elements.namedItem('minBedrooms').value='';else form.elements.namedItem('commercialType').value='';
+  form.querySelector('.bedrooms-range').hidden=commercial;
+  for(const name of ['minBedrooms','maxBedrooms']){const field=form.elements.namedItem(name);field.closest('label').hidden=commercial;field.disabled=commercial;if(commercial)field.value=''}
+  if(!commercial)form.elements.namedItem('commercialType').value='';
+  syncBedroomsRange();
+}
+function syncBedroomsRange(){
+  const form=$('#filters'),minimum=form.elements.namedItem('minBedrooms'),maximum=form.elements.namedItem('maxBedrooms');
+  maximum.setCustomValidity(minimum.value!==''&&maximum.value!==''&&Number(minimum.value)>Number(maximum.value)?tr('bedroomsRange'):'');
 }
 function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(value!=='')values[key]=value;if(values.maxPriceUsd&&currency==='GEL'){values.maxPriceGel=values.maxPriceUsd;delete values.maxPriceUsd}return values}
 function displayAmount(usd){return currency==='GEL'?Number(usd)*exchangeRate.usdGel:Number(usd)}
@@ -308,7 +364,7 @@ async function loadSearches(){
   try{searches=(await api('/searches')).items;renderSearches()}
   catch(error){$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}
 }
-function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
+function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
 function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
 function showEntry(){entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
@@ -357,16 +413,18 @@ $('#entry-language').addEventListener('change',event=>setLanguage(event.target.v
 $('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#filters').elements.namedItem('propertyType').addEventListener('change',syncPropertyFilters);
-$('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value});
+$('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value;districtSelection='';const select=$('#filters').elements.namedItem('district');select.replaceChildren(new Option(tr('allDistricts'),''));select.disabled=!citySelection;loadDistricts('')});
+$('#filters').elements.namedItem('district').addEventListener('change',event=>{districtSelection=event.target.value});
+for(const name of ['minBedrooms','maxBedrooms'])$('#filters').elements.namedItem(name).addEventListener('input',syncBedroomsRange);
 syncPropertyFilters();
 $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListings()});
 $('#hero-browse').addEventListener('click',()=>$('#filters').scrollIntoView({behavior:'smooth',block:'center'}));
 $('#load-more').addEventListener('click',()=>loadListings(true));
-$('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,maxPriceGel:filters().maxPriceGel?Number(filters().maxPriceGel):null,minBedrooms:filters().minBedrooms?Number(filters().minBedrooms):null,minAreaM2:filters().minAreaM2!=null?Number(filters().minAreaM2):null,maxAreaM2:filters().maxAreaM2!=null?Number(filters().maxAreaM2):null,minFloor:filters().minFloor!=null?Number(filters().minFloor):null,maxFloor:filters().maxFloor!=null?Number(filters().maxFloor):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const name=prompt(tr('searchName'),[filters().city,filters().operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...filters(),maxPriceUsd:filters().maxPriceUsd?Number(filters().maxPriceUsd):null,maxPriceGel:filters().maxPriceGel?Number(filters().maxPriceGel):null,minBedrooms:filters().minBedrooms!=null?Number(filters().minBedrooms):null,maxBedrooms:filters().maxBedrooms!=null?Number(filters().maxBedrooms):null,minAreaM2:filters().minAreaM2!=null?Number(filters().minAreaM2):null,maxAreaM2:filters().maxAreaM2!=null?Number(filters().maxAreaM2):null,minFloor:filters().minFloor!=null?Number(filters().minFloor):null,maxFloor:filters().maxFloor!=null?Number(filters().maxFloor):null})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#auth-username').value,password:$('#auth-password').value})});signedIn(result,'guest')}catch(error){showStatus(error.message,true)}});
-$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;if(search.maxPriceGel!=null&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}if(search.maxPriceGel!=null)setCurrency('GEL',true,false);else if(search.maxPriceUsd!=null)setCurrency('USD',true,false);for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceGel??search.maxPriceUsd,minBedrooms:search.minBedrooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}syncPropertyFilters();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
+$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;if(search.maxPriceGel!=null&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}if(search.maxPriceGel!=null)setCurrency('GEL',true,false);else if(search.maxPriceUsd!=null)setCurrency('USD',true,false);for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,maxPriceUsd:search.maxPriceGel??search.maxPriceUsd,minBedrooms:search.minBedrooms,maxBedrooms:search.maxBedrooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}citySelection=search.city||'';await loadDistricts(search.district||'');syncPropertyFilters();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else await api('/searches/'+id,{method:'DELETE'});loadSearches()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
 $('#feed-load-more').addEventListener('click',()=>loadFeed(true));
