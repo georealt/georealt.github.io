@@ -156,3 +156,6 @@ body.entered .entry-screen{display:none}
 
 /* Keep both bedroom limits together at every breakpoint. */
 .bedrooms-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;grid-column:span 2;min-width:0}
+
+/* Keep price bounds together while preserving the compact filter grid. */
+.price-range{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;grid-column:span 2;min-width:0}
