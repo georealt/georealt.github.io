@@ -69,6 +69,12 @@ body.entered .entry-screen{display:none}
 .feed-filters .feed-filter{min-width:min(320px,100%)}
 .feed-filters .feed-filter select{min-width:180px}
 .feed-filter select{min-height:38px;max-width:100%;border:1px solid #dbe1e5;border-radius:9px;background:#fff;color:#253e4e;padding:7px 11px;font-size:12px;font-weight:700}
+.source-picker{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0}
+.source-picker-title{margin-right:3px;color:#65727a;font-size:10px;font-weight:800}
+.source-chip{display:inline-flex!important;align-items:center;gap:7px!important;min-height:34px;padding:0 10px;border:1px solid #dbe1e5;border-radius:9px;background:#fff;color:#314956;font-size:11px!important;font-weight:700}
+.source-chip:has(input:checked){border-color:#315d76;background:#eaf1f5;color:#1d4358}
+.source-chip input{width:15px!important;height:15px!important;margin:0;accent-color:#315d76}
+.source-picker small{color:#7b878d;font-size:10px;font-weight:500}
 
 .source-mark.realting-mark{background:#267d88}
 
@@ -91,6 +97,9 @@ body.entered .entry-screen{display:none}
   .feed-filter select{flex:1 1 auto}
   .feed-filters{display:grid;grid-template-columns:1fr;gap:0}
   .feed-filters .feed-filter{min-width:0}
+  .source-picker{gap:7px}
+  .source-chip{min-height:38px;padding:0 9px}
+  .source-picker small{flex-basis:100%;font-size:11px}
 }
 @media(max-width:400px){
   .top-actions select{font-size:13px!important;padding:7px 6px}
