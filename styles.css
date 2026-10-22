@@ -216,7 +216,9 @@ body.entered .entry-screen{display:none}
 .feed-photo-wrap .favorite-toggle svg{width:18px;height:18px}
 @media(max-width:760px){
  .nav{grid-template-columns:repeat(4,minmax(0,1fr))}
- .nav-item{min-width:0;line-height:1.35;justify-content:flex-start}
+ .sidebar{padding:4px 8px max(4px,env(safe-area-inset-bottom))}
+ .nav-item{min-width:0;line-height:1.35;justify-content:flex-start;padding:3px 2px;gap:1px;font-size:8px}
+ .nav-item>span:first-child{font-size:15px}
  .nav-item>span:nth-child(2){overflow-wrap:anywhere}
  .nav .count{margin-left:36px}
  .favorite-toggle{width:44px;height:44px;padding:10px;top:9px;right:9px}
