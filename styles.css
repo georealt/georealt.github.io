@@ -217,8 +217,8 @@ body.entered .entry-screen{display:none}
 @media(max-width:760px){
  .nav{grid-template-columns:repeat(4,minmax(0,1fr))}
  .sidebar{padding:5px 8px max(5px,env(safe-area-inset-bottom))}
- .nav-item{min-width:0;line-height:1.25;justify-content:flex-start;padding:4px 2px 3px;gap:0;font-size:11px}
- .nav-item>span:first-child{font-size:20px;transform:translateY(-2px)}
+ .nav-item{min-width:0;line-height:1.25;justify-content:flex-start;padding:4px 2px 3px;gap:0;font-size:12px}
+ .nav-item>span:first-child{font-size:17px;transform:translateY(-2px)}
  .nav-item>span:nth-child(2){width:100%;min-width:0;overflow-wrap:anywhere;text-wrap:balance}
  .nav .count{margin-left:36px}
  .favorite-toggle{width:44px;height:44px;padding:10px;top:9px;right:9px}
