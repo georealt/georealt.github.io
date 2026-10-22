@@ -216,10 +216,10 @@ body.entered .entry-screen{display:none}
 .feed-photo-wrap .favorite-toggle svg{width:18px;height:18px}
 @media(max-width:760px){
  .nav{grid-template-columns:repeat(4,minmax(0,1fr))}
- .sidebar{padding:4px 8px max(4px,env(safe-area-inset-bottom))}
- .nav-item{min-width:0;line-height:1.35;justify-content:flex-start;padding:3px 2px;gap:1px;font-size:8px}
- .nav-item>span:first-child{font-size:15px}
- .nav-item>span:nth-child(2){overflow-wrap:anywhere}
+ .sidebar{padding:5px 8px max(5px,env(safe-area-inset-bottom))}
+ .nav-item{min-width:0;line-height:1.25;justify-content:flex-start;padding:4px 2px 3px;gap:0;font-size:11px}
+ .nav-item>span:first-child{font-size:20px;transform:translateY(-2px)}
+ .nav-item>span:nth-child(2){width:100%;min-width:0;overflow-wrap:anywhere;text-wrap:balance}
  .nav .count{margin-left:36px}
  .favorite-toggle{width:44px;height:44px;padding:10px;top:9px;right:9px}
  .favorite-note textarea{font-size:16px!important}
