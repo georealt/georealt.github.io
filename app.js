@@ -47,7 +47,10 @@ Object.assign(words.ka,{currencyLabel:'ფასის ვალუტა',maxPr
 Object.assign(words.en,{district:'District',allDistricts:'All districts',chooseCity:'Select a city first',noDistricts:'No districts for this city',districtsUnavailable:'Could not load districts. Please try again.',maxBedrooms:'Max bedrooms',bedroomsRange:'Maximum bedrooms must be at least the minimum.'});
 Object.assign(words.ru,{district:'Район',allDistricts:'Все районы',chooseCity:'Сначала выберите город',noDistricts:'Для этого города районов нет',districtsUnavailable:'Не удалось загрузить районы. Повторите попытку.',maxBedrooms:'Спален до',bedroomsRange:'Спален до должно быть не меньше, чем спален от.'});
 Object.assign(words.ka,{district:'უბანი',allDistricts:'ყველა უბანი',chooseCity:'ჯერ აირჩიეთ ქალაქი',noDistricts:'ამ ქალაქისთვის უბნები არ არის',districtsUnavailable:'უბნები ვერ ჩაიტვირთა. სცადეთ ხელახლა.',maxBedrooms:'საძინებლები მაქს.',bedroomsRange:'საძინებლების მაქსიმუმი მინიმუმზე ნაკლები არ უნდა იყოს.'});
-let districtSelection='',districtLoadId=0,districtFallback=null;
+Object.assign(words.en,{districtCount:n=>`${n} districts`});
+Object.assign(words.ru,{districtCount:n=>`${n} ${n%10===1&&n%100!==11?'район':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'района':'районов'}`});
+Object.assign(words.ka,{districtCount:n=>`${n} უბანი`});
+let districtSelection=[],districtLoadId=0,districtFallback=null;
 const districtCatalogs=new Map();
 let currency='USD', exchangeRate=null;
 const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
@@ -84,32 +87,39 @@ async function api(path,options={}){
   return body;
 }
 function districtLabel(value,city,names={}){return names?.[language]||districtCatalogs.get(city)?.find(item=>item.value===value)?.names?.[language]||value}
-function applyDistrictCatalog(items,select,selected,city){
+function syncDistricts(selected=districtSelection){
+  districtSelection=[...new Set(Array.isArray(selected)?selected:selected?[selected]:[])];
+  const city=$('#filters').elements.namedItem('city').value,items=districtCatalogs.get(city)||[];
+  const dropdown=$('#district-dropdown'),disabled=dropdown.dataset.disabled==='true';
+  document.querySelectorAll('#district-menu input[name="districts"]').forEach(input=>{input.checked=districtSelection.includes(input.value)});
+  const all=$('#district-all');if(all)all.checked=!districtSelection.length;
+  $('#district-summary-label').textContent=!city?tr('chooseCity'):disabled&&!items.length?tr('noDistricts'):districtSelection.length===1?districtLabel(districtSelection[0],city):districtSelection.length?tr('districtCount',districtSelection.length):tr('allDistricts');
+}
+function setDistrictPickerDisabled(disabled){
+  const dropdown=$('#district-dropdown'),summary=dropdown.querySelector('summary');
+  dropdown.dataset.disabled=String(disabled);summary.setAttribute('aria-disabled',String(disabled));summary.tabIndex=disabled?-1:0;
+  if(disabled)dropdown.open=false;
+}
+function applyDistrictCatalog(items,selected,city){
   districtCatalogs.set(city,items);
-  select.replaceChildren(new Option(tr(items.length?'allDistricts':'noDistricts'),''));
-  for(const row of items){
-    if(row.parentValue)continue;
-    const children=items.filter(item=>item.parentValue===row.value);
-    let target=select;
-    if(children.length){target=document.createElement('optgroup');target.label=row.names?.[language]||row.name;select.append(target);}
-    target.append(new Option(row.names?.[language]||row.name,row.value));
-    for(const child of children)target.append(new Option(child.names?.[language]||child.name,child.value));
-  }
-  if(selected&&![...select.options].some(option=>option.value===selected))select.add(new Option(districtLabel(selected,city),selected));
-  select.value=selected||'';districtSelection=select.value;
-  select.disabled=!items.length&&!selected;
-  select.removeAttribute('aria-busy');renderSearches();
+  const rows=[];
+  for(const row of items){if(row.parentValue)continue;rows.push(row,...items.filter(item=>item.parentValue===row.value))}
+  $('#district-menu').innerHTML=`<label class="source-menu-option"><input id="district-all" type="checkbox"><span>${safe(tr('allDistricts'))}</span></label><div class="source-menu-divider"></div>`+rows.map(row=>`<label class="source-menu-option${row.parentValue?' district-child':''}"><input type="checkbox" name="districts" value="${safe(row.value)}"><span>${safe(row.names?.[language]||row.name)}</span></label>`).join('');
+  setDistrictPickerDisabled(!items.length);syncDistricts(selected);
+  $('#district-dropdown').removeAttribute('aria-busy');renderSearches();
 }
 async function loadDistricts(selected=districtSelection){
-  const requestId=++districtLoadId,form=$('#filters'),select=form.elements.namedItem('district'),city=form.elements.namedItem('city').value;
-  districtSelection=city?(selected||''):'';
-  if(!city){select.replaceChildren(new Option(tr('chooseCity'),''));select.disabled=true;select.removeAttribute('aria-busy');return}
-  select.setAttribute('aria-busy','true');
+  const requestId=++districtLoadId,city=$('#filters').elements.namedItem('city').value;
+  districtSelection=city?(Array.isArray(selected)?[...selected]:selected?[selected]:[]):[];
+  setDistrictPickerDisabled(true);
+  if(!city){$('#district-menu').replaceChildren();syncDistricts([]);$('#district-dropdown').removeAttribute('aria-busy');return}
+  $('#district-dropdown').setAttribute('aria-busy','true');
+  syncDistricts();
   try{
     const result=await api('/locations/districts?'+query({city,language}));
     if(requestId!==districtLoadId)return;
     if(!Array.isArray(result.items))throw Error(tr('districtsUnavailable'));
-    applyDistrictCatalog(result.items,select,districtSelection,city);
+    applyDistrictCatalog(result.items,districtSelection,city);
   }catch(error){
     if(requestId!==districtLoadId)return;
     try{
@@ -118,11 +128,10 @@ async function loadDistricts(selected=districtSelection){
       if(requestId!==districtLoadId)return;
       const items=result.cities?.[city]?.districts;
       if(!Array.isArray(items))throw Error();
-      applyDistrictCatalog(items,select,districtSelection,city);
+      applyDistrictCatalog(items,districtSelection,city);
     }catch{
       if(requestId!==districtLoadId)return;
-      select.removeAttribute('aria-busy');showStatus(tr('districtsUnavailable'),true);
-      if(!select.options.length)select.add(new Option(tr('allDistricts'),''));
+      $('#district-dropdown').removeAttribute('aria-busy');$('#district-summary-label').textContent=tr('districtsUnavailable');showStatus(tr('districtsUnavailable'),true);
     }
   }
 }
@@ -184,7 +193,7 @@ function syncBedroomsRange(){
   const form=$('#filters'),minimum=form.elements.namedItem('minBedrooms'),maximum=form.elements.namedItem('maxBedrooms');
   maximum.setCustomValidity(minimum.value!==''&&maximum.value!==''&&Number(minimum.value)>Number(maximum.value)?tr('bedroomsRange'):'');
 }
-function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(key!=='sources'&&value!=='')values[key]=value;values.sources=form.getAll('sources');if(currency==='GEL'){if(values.minPriceUsd){values.minPriceGel=values.minPriceUsd;delete values.minPriceUsd}if(values.maxPriceUsd){values.maxPriceGel=values.maxPriceUsd;delete values.maxPriceUsd}}return values}
+function filters(){const form=new FormData($('#filters'));const values={};for(const [key,value] of form.entries())if(key!=='sources'&&key!=='districts'&&value!=='')values[key]=value;values.sources=form.getAll('sources');values.districts=[...districtSelection];if(currency==='GEL'){if(values.minPriceUsd){values.minPriceGel=values.minPriceUsd;delete values.minPriceUsd}if(values.maxPriceUsd){values.maxPriceGel=values.maxPriceUsd;delete values.maxPriceUsd}}return values}
 function syncSources(selected=[]){const values=selected?.length?selected:[];document.querySelectorAll('#filters input[name="sources"]').forEach(input=>{input.checked=values.includes(input.value)});$('#source-all').checked=values.length===0;$('#source-summary-label').textContent=values.length?values.length===1?values[0]:tr('sourceCount',values.length):tr('allSources')}
 function syncPriceRange(){const form=$('#filters'),minimum=form.elements.namedItem('minPriceUsd'),maximum=form.elements.namedItem('maxPriceUsd');maximum.setCustomValidity(minimum.value!==''&&maximum.value!==''&&Number(minimum.value)>Number(maximum.value)?tr('priceRange'):'')}
 function displayAmount(usd){return currency==='GEL'?Number(usd)*exchangeRate.usdGel:Number(usd)}
@@ -385,7 +394,7 @@ async function loadSearches(){
   try{const previous=feedSearchId;searches=(await api('/searches')).items;renderSearches();renderFeedSearchFilter();if(previous&&!feedSearchId&&view==='feed'){feed=[];loadFeed()}}
   catch(error){$('#searches-list').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}
 }
-function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.sources?.length?s.sources.join(', '):s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.minPriceUsd!=null||s.minPriceGel!=null?'≥ '+money(s.minPriceUsd,s.minPriceGel):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
+function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.sources?.length?s.sources.join(', '):s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.districts?.length?s.districts.map(value=>districtLabel(value,s.city,s.districtsNames?.[value])).join(', '):s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.minPriceUsd!=null||s.minPriceGel!=null?'≥ '+money(s.minPriceUsd,s.minPriceGel):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
 function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
 function showEntry(){entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
@@ -434,10 +443,11 @@ $('#entry-language').addEventListener('change',event=>setLanguage(event.target.v
 $('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
-document.addEventListener('click',event=>{const dropdown=$('#source-dropdown');if(dropdown.open&&!dropdown.contains(event.target))dropdown.open=false});
+document.addEventListener('click',event=>{document.querySelectorAll('.source-dropdown[open]').forEach(dropdown=>{if(!dropdown.contains(event.target))dropdown.open=false})});
+$('#district-dropdown summary').addEventListener('click',event=>{if($('#district-dropdown').dataset.disabled==='true')event.preventDefault()});
+$('#district-menu').addEventListener('change',event=>{if(event.target.id==='district-all')syncDistricts([]);else if(event.target.matches('input[name="districts"]'))syncDistricts([...document.querySelectorAll('#district-menu input[name="districts"]:checked')].map(input=>input.value))});
 $('#filters').elements.namedItem('propertyType').addEventListener('change',syncPropertyFilters);
-$('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value;districtSelection='';const select=$('#filters').elements.namedItem('district');select.replaceChildren(new Option(tr('allDistricts'),''));select.disabled=!citySelection;loadDistricts('')});
-$('#filters').elements.namedItem('district').addEventListener('change',event=>{districtSelection=event.target.value});
+$('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value;districtSelection=[];$('#district-menu').replaceChildren();loadDistricts([])});
 for(const name of ['minBedrooms','maxBedrooms'])$('#filters').elements.namedItem(name).addEventListener('input',syncBedroomsRange);
 for(const name of ['minPriceUsd','maxPriceUsd'])$('#filters').elements.namedItem(name).addEventListener('input',syncPriceRange);
 syncPropertyFilters();syncPriceRange();
@@ -448,7 +458,7 @@ $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('l
 $('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#auth-username').value,password:$('#auth-password').value})});signedIn(result,'guest')}catch(error){showStatus(error.message,true)}});
-$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;const usesGel=search.minPriceGel!=null||search.maxPriceGel!=null;if(usesGel&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}setCurrency(usesGel?'GEL':'USD',true,false);const minValue=usesGel?(search.minPriceGel??(search.minPriceUsd!=null?Number((search.minPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.minPriceUsd??(search.minPriceGel!=null?Number((search.minPriceGel/exchangeRate.usdGel).toFixed(2)):null));const maxValue=usesGel?(search.maxPriceGel??(search.maxPriceUsd!=null?Number((search.maxPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.maxPriceUsd??(search.maxPriceGel!=null?Number((search.maxPriceGel/exchangeRate.usdGel).toFixed(2)):null));syncSources(search.sources?.length?search.sources:(search.source?[search.source]:[]));for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,minPriceUsd:minValue,maxPriceUsd:maxValue,minBedrooms:search.minBedrooms,maxBedrooms:search.maxBedrooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}citySelection=search.city||'';await loadDistricts(search.district||'');syncPropertyFilters();syncPriceRange();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else {await api('/searches/'+id,{method:'DELETE'});if(feedSearchId===id){feedSearchId='';localStorage.removeItem('geoFeedSearchId')}}await loadSearches();feed=[];if(view==='feed')loadFeed()}catch(error){showStatus(error.message,true)}});
+$('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;const usesGel=search.minPriceGel!=null||search.maxPriceGel!=null;if(usesGel&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}setCurrency(usesGel?'GEL':'USD',true,false);const minValue=usesGel?(search.minPriceGel??(search.minPriceUsd!=null?Number((search.minPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.minPriceUsd??(search.minPriceGel!=null?Number((search.minPriceGel/exchangeRate.usdGel).toFixed(2)):null));const maxValue=usesGel?(search.maxPriceGel??(search.maxPriceUsd!=null?Number((search.maxPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.maxPriceUsd??(search.maxPriceGel!=null?Number((search.maxPriceGel/exchangeRate.usdGel).toFixed(2)):null));syncSources(search.sources?.length?search.sources:(search.source?[search.source]:[]));for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,minPriceUsd:minValue,maxPriceUsd:maxValue,minBedrooms:search.minBedrooms,maxBedrooms:search.maxBedrooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}citySelection=search.city||'';await loadDistricts(search.districts?.length?search.districts:search.district?[search.district]:[]);syncPropertyFilters();syncPriceRange();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else {await api('/searches/'+id,{method:'DELETE'});if(feedSearchId===id){feedSearchId='';localStorage.removeItem('geoFeedSearchId')}}await loadSearches();feed=[];if(view==='feed')loadFeed()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
 $('#feed-search').addEventListener('change',event=>{feedSearchId=event.target.value;feed=[];if(feedSearchId)localStorage.setItem('geoFeedSearchId',feedSearchId);else localStorage.removeItem('geoFeedSearchId');loadFeed()});
@@ -464,7 +474,7 @@ window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed(
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261021-sourcedropdown5').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261022-multidistrict1').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
