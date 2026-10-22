@@ -8,7 +8,7 @@
   <title>Geo Realt — New listings</title>
   <link rel="icon" href="./icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=20261022-rooms1">
+  <link rel="stylesheet" href="./styles.css?v=20261022-favorites1">
 </head>
 <body>
   <section id="entry-screen" class="entry-screen" aria-labelledby="entry-title">
@@ -33,7 +33,7 @@
   <main class="shell">
     <aside class="sidebar">
       <div class="eyebrow" data-i18n="workspace">WORKSPACE</div>
-      <nav class="nav" aria-label="Main navigation"><button class="nav-item active" data-view="listings"><span>⌂</span><span data-i18n="listings">Listings</span></button><button class="nav-item" data-view="feed"><span>◉</span><span data-i18n="feed">New matches</span><span id="feed-count" class="count" hidden>0</span></button><button class="nav-item" data-view="searches"><span>◇</span><span data-i18n="savedSearches">Saved searches</span></button></nav>
+      <nav class="nav" aria-label="Main navigation"><button class="nav-item active" data-view="listings"><span>⌂</span><span data-i18n="listings">Listings</span></button><button class="nav-item" data-view="feed"><span>◉</span><span data-i18n="feed">New matches</span><span id="feed-count" class="count" hidden>0</span></button><button class="nav-item" data-view="favorites"><span>♡</span><span data-i18n="favorites">Favorites</span></button><button class="nav-item" data-view="searches"><span>◇</span><span data-i18n="savedSearches">Saved searches</span></button></nav>
       <div class="sidebar-bottom"><div class="source-badge"><span class="source-mark">M</span><div><b>MyHome.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><div class="source-badge"><span class="source-mark ss-mark">S</span><div><b>ss.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><div class="source-badge"><span class="source-mark korter-mark">K</span><div><b>Korter.ge</b><small data-i18n="connectedSource">Connected source</small></div></div><div class="source-badge"><span class="source-mark realting-mark">R</span><div><b>Realting.com</b><small data-i18n="connectedSource">Connected source</small></div></div><p data-i18n="sourceHint">New public listings are checked regularly. Open the original listing for full details.</p></div>
     </aside>
     <section class="content">
@@ -55,6 +55,7 @@
         <div id="listings-grid" class="listing-grid"></div><button id="load-more" class="load-more" hidden data-i18n="loadMore">Load more</button>
       </div>
       <div id="feed-view" class="view" hidden><div class="results-head"><div><div class="eyebrow" data-i18n="forYou">FOR YOU</div><h2 data-i18n="newMatches">New matches</h2></div><div class="push-controls"><button id="enable-push" class="secondary-button" data-i18n="enablePush">Enable notifications</button><button id="test-push" class="secondary-button" data-i18n="testPush" hidden>Send test</button><button id="disable-push" class="text-button" data-i18n="disablePush" hidden>Turn off</button></div></div><p class="view-intro" data-i18n="feedIntro">New listings appear here after you save a search. Existing listings are your starting point and do not trigger alerts.</p><div class="feed-filters"><label class="feed-filter" id="feed-search-filter"><span data-i18n="searchFilter">Search</span><select id="feed-search"><option value="" data-i18n="allSearches">All searches</option></select></label><label class="feed-filter"><span data-i18n="statusFilter">Status</span><select id="feed-status"><option value="" data-i18n="allStatuses">All statuses</option><option value="NEW" data-i18n="new">New</option><option value="SAVED" data-i18n="saved">Saved</option><option value="CONTACTED" data-i18n="contacted">Called</option><option value="DISMISSED" data-i18n="dismissed">Not interested</option></select></label></div><div id="feed-list" class="feed-list"></div><button id="feed-load-more" class="load-more" hidden data-i18n="loadMore">Load more</button></div>
+      <div id="favorites-view" class="view" hidden><div class="results-head"><div><div class="eyebrow" data-i18n="yourSelection">YOUR SELECTION</div><h2 data-i18n="favorites">Favorites</h2></div><span id="favorites-count" class="result-count"></span></div><p class="view-intro" data-i18n="favoritesIntro">Keep properties you like and add private notes.</p><div id="favorites-list" class="listing-grid favorites-list"></div><button id="favorites-load-more" class="load-more" hidden data-i18n="loadMore">Load more</button></div>
       <div id="searches-view" class="view" hidden><div class="results-head"><div><div class="eyebrow" data-i18n="watchlist">WATCHLIST</div><h2 data-i18n="savedSearches">Saved searches</h2></div></div><p class="view-intro" data-i18n="searchIntro">Save a filter to watch for matching listings as they appear.</p><div id="searches-list" class="searches-list"></div></div>
     </section>
   </main>
@@ -66,6 +67,6 @@
     <button id="photo-next" class="photo-step photo-next" type="button" aria-label="Next photo">›</button>
     <div id="photo-count" class="photo-count"></div>
   </dialog>
-  <script src="./app.js?v=20261022-rooms1" defer></script>
+  <script src="./app.js?v=20261022-favorites1" defer></script>
 </body>
 </html>

@@ -53,6 +53,12 @@ Object.assign(words.ka,{districtCount:n=>`${n} უბანი`});
 Object.assign(words.en,{minRooms:'Rooms from',maxRooms:'Rooms to',roomsRange:'Maximum rooms must be at least the minimum.'});
 Object.assign(words.ru,{minRooms:'Комнат от',maxRooms:'Комнат до',roomsRange:'Комнат до должно быть не меньше, чем комнат от.'});
 Object.assign(words.ka,{minRooms:'ოთახები მინ.',maxRooms:'ოთახები მაქს.',roomsRange:'ოთახების მაქსიმუმი მინიმუმზე ნაკლები არ უნდა იყოს.'});
+Object.assign(words.en,{favorites:'Favorites',yourSelection:'YOUR SELECTION',favoritesIntro:'Keep properties you like and add private notes.',noFavorites:'No favorites yet',favoritesEmpty:'Tap the heart on a property photo to save it here.',favoritesLogin:'Sign in to save properties and your private notes.',addFavorite:'Add to favorites',removeFavorite:'Remove from favorites',favoriteNotes:'Your notes',favoriteNotePlaceholder:'Viewing details, questions for the owner…',saveFavoriteNote:'Save note',favoriteNoteSaved:'Note saved',favoriteNoteUnsaved:'Unsaved changes',favoriteNoteSaving:'Saving…',favoriteAdded:'Added to favorites',favoriteRemoved:'Removed from favorites',retryFavorites:'Try again'});
+Object.assign(words.ru,{favorites:'Избранное',yourSelection:'ВАШ ВЫБОР',favoritesIntro:'Сохраняйте понравившиеся объекты и добавляйте личные заметки.',noFavorites:'В избранном пока пусто',favoritesEmpty:'Нажмите на сердечко на фото объекта, чтобы сохранить его здесь.',favoritesLogin:'Войдите, чтобы сохранять объекты и личные заметки.',addFavorite:'Добавить в избранное',removeFavorite:'Удалить из избранного',favoriteNotes:'Ваши заметки',favoriteNotePlaceholder:'Детали просмотра, вопросы владельцу…',saveFavoriteNote:'Сохранить заметку',favoriteNoteSaved:'Заметка сохранена',favoriteNoteUnsaved:'Есть несохранённые изменения',favoriteNoteSaving:'Сохраняем…',favoriteAdded:'Добавлено в избранное',favoriteRemoved:'Удалено из избранного',retryFavorites:'Повторить'});
+Object.assign(words.ka,{favorites:'რჩეულები',yourSelection:'თქვენი არჩევანი',favoritesIntro:'შეინახეთ სასურველი ობიექტები და დაამატეთ პირადი ჩანაწერები.',noFavorites:'რჩეულები ჯერ არ გაქვთ',favoritesEmpty:'ობიექტის შესანახად დააჭირეთ გულს ფოტოზე.',favoritesLogin:'ობიექტებისა და პირადი ჩანაწერების შესანახად შედით ანგარიშში.',addFavorite:'რჩეულებში დამატება',removeFavorite:'რჩეულებიდან წაშლა',favoriteNotes:'თქვენი ჩანაწერები',favoriteNotePlaceholder:'დათვალიერების დეტალები, კითხვები მეპატრონეს…',saveFavoriteNote:'ჩანაწერის შენახვა',favoriteNoteSaved:'ჩანაწერი შენახულია',favoriteNoteUnsaved:'შეუნახავი ცვლილებები',favoriteNoteSaving:'ინახება…',favoriteAdded:'დაემატა რჩეულებში',favoriteRemoved:'წაიშალა რჩეულებიდან',retryFavorites:'ხელახლა ცდა'});
+let favoriteIds=new Set(),favorites=[],favoritesTotal=0,favoritesLoading=false,favoritesError=false;
+let favoritesRequestId=0,favoriteIdsRequestId=0;
+const favoriteBusy=new Set(),favoriteNoteBusy=new Set(),favoriteDrafts=new Map(),favoriteNoteErrors=new Map(),favoriteNoteSaved=new Set();
 let districtSelection=[],districtLoadId=0,districtFallback=null;
 const districtCatalogs=new Map();
 let currency='USD', exchangeRate=null;
@@ -176,9 +182,9 @@ async function loadCities(){
     }
   }
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();renderFavorites();renderFavoriteButtons();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function scrollToRefineResults(){requestAnimationFrame(()=>{const target=$('.filter-card .section-head'),header=$('.topbar');if(!target)return;const offset=(header?.getBoundingClientRect().height||0)+12;window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-offset,behavior:'smooth'});});}
-function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')scrollToRefineResults();if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches()}
+function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','favorites','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')scrollToRefineResults();if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches();if(next==='favorites'){loadFavorites();requestAnimationFrame(()=>{const target=$('#favorites-view .results-head');window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-($('.topbar')?.getBoundingClientRect().height||0)-12,behavior:'smooth'})})}}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
 Object.assign(words.ka,{minFloor:'სართული მინ.',maxFloor:'სართული მაქს.'});
@@ -226,7 +232,7 @@ function setCurrency(value,persist=true,refresh=true){
   const fields=['minPriceUsd','maxPriceUsd'].map(name=>$('#filters').elements.namedItem(name));
   if(next!==currency)for(const field of fields)if(field.value){const usd=currency==='GEL'?Number(field.value)/exchangeRate.usdGel:Number(field.value);field.value=Number((next==='GEL'?usd*exchangeRate.usdGel:usd).toFixed(2))}
   currency=next;if(persist)localStorage.setItem('geoCurrency',currency);
-  updateCurrencyUI();syncPriceRange();renderListings();renderFeed();renderSearches();
+  updateCurrencyUI();syncPriceRange();renderListings();renderFeed();renderSearches();renderFavorites();
   if(refresh&&previous!==next&&fields.some(field=>field.value)&&!listingsLoading)loadListings();
 }
 async function loadExchangeRate(initial=false){
@@ -295,11 +301,11 @@ function card(item){
   const {text:fullDescription,original}=listingDescription(item),description=fullDescription.slice(0,250);
   const advertiser={OWNER:'owner',AGENT:'agent',AGENCY:'agent'}[item.advertiserType];
   const phones=callLinks(item), date=listingDate(item);
-  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${images.length?`<button type="button" class="photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"></button>`:``}${gallery}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">${safe(formatted)}<small> / ${currency}</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span>${item.propertyType==='COMMERCIAL'?`<span>${safe(tr(item.commercialType||'OTHER'))}</span>${item.floor!=null?`<span>${safe(tr('floor'))} ${safe(item.floor)}</span>`:''}`:`${item.propertyType==='APARTMENT'&&item.floor!=null?`<span>${safe(tr('floor'))} ${safe(item.floor)}</span>`:''}<span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span>`}</div><div class="card-footer">${date?`<small class="card-date"><span>${safe(tr(['myhome.ge','realting.com'].includes(item.source)?'updatedOnSource':'postedOnSource'))}</span><time datetime="${safe(date.iso)}">${safe(date.text)}</time></small>`:''}${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(phoneOnSource(item))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
+  return `<article class="listing-card"><div class="card-image" data-gallery-id="${safe(item.id)}" data-gallery-index="${imageIndex}">${photo}${images.length?`<button type="button" class="photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"></button>`:``}${gallery}${favoriteButton(item.id)}<div class="card-chips"><span class="card-chip">${safe(tr(item.operation==='RENT'?'rent':'buy'))}</span>${advertiser?`<span class="card-chip advertiser-chip">${safe(tr(advertiser))}</span>`:''}</div></div><div class="card-body"><div class="card-price">${safe(formatted)}<small> / ${currency}</small></div><h3>${safe(listingTitle(item))}</h3><div class="card-location">⌖ ${safe([item.city,item.district].filter(Boolean).join(' · '))}</div>${item.agencyWarning?`<div class="warning">⚠ ${safe(tr('agencyWarning'))}</div>`:''}${description?`<div class="card-description"><strong>${safe(tr('shortDescription'))}${original?` · ${safe(tr('originalText'))}`:''}</strong><p>${safe(description)}${fullDescription.length>250?'…':''}</p></div>`:''}<div class="card-details"><span>▣ ${safe(item.areaM2??'—')} ${safe(tr('area'))}</span>${item.propertyType==='COMMERCIAL'?`<span>${safe(tr(item.commercialType||'OTHER'))}</span>${item.floor!=null?`<span>${safe(tr('floor'))} ${safe(item.floor)}</span>`:''}`:`${item.propertyType==='APARTMENT'&&item.floor!=null?`<span>${safe(tr('floor'))} ${safe(item.floor)}</span>`:''}<span>▦ ${safe(item.bedrooms??'—')} ${safe(tr('beds'))}</span><span>□ ${safe(item.rooms??'—')} ${safe(tr('rooms'))}</span>`}</div><div class="card-footer">${date?`<small class="card-date"><span>${safe(tr(['myhome.ge','realting.com'].includes(item.source)?'updatedOnSource':'postedOnSource'))}</span><time datetime="${safe(date.iso)}">${safe(date.text)}</time></small>`:''}${phones?`<div class="call-actions">${phones}</div>`:`<span class="contact-hint">${safe(phoneOnSource(item))}</span>`}</div></div><a class="card-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`
 }
 function galleryMove(card,step){
   const holder=card.querySelector('.card-image');
-  const item=listings.find(row=>String(row.id)===holder?.dataset.galleryId);
+  const item=findListing(holder?.dataset.galleryId);
   const images=item?galleryImages(item):[];
   if(images.length<2)return false;
   const index=(Number(holder.dataset.galleryIndex)+step+images.length)%images.length;
@@ -324,7 +330,7 @@ function showGalleryPhoto(){
   gallerySelections.set(activeGallery.id,image);
 }
 function openGallery(id){
-  activeGallery=listings.find(item=>String(item.id)===String(id))||feed.find(event=>String(event.listing.id)===String(id))?.listing;
+  activeGallery=findListing(id);
   const images=activeGallery?galleryImages(activeGallery):[];
   if(!images.length){activeGallery=null;return}
   activeGalleryIndex=Math.max(0,images.indexOf(gallerySelections.get(activeGallery.id)));
@@ -344,17 +350,122 @@ function galleryStep(step){
   showGalleryPhoto();
 }
 let galleryTouch=null, gallerySwipeUntil=0;
-$('#listings-grid').addEventListener('click',event=>{const button=event.target.closest('[data-gallery-step]'),open=event.target.closest('[data-open-gallery]');if(button){event.preventDefault();event.stopPropagation();galleryMove(button.closest('.listing-card'),Number(button.dataset.galleryStep))}else if(open){event.preventDefault();event.stopPropagation();if(Date.now()>=gallerySwipeUntil)openGallery(open.dataset.openGallery)}else if(event.target.closest('.card-hit')&&Date.now()<gallerySwipeUntil){event.preventDefault();event.stopPropagation()}},true);
-$('#listings-grid').addEventListener('touchstart',event=>{const card=event.target.closest('.listing-card'),touch=event.changedTouches[0];if(!card||!touch)return;const image=card.querySelector('.card-image'),rect=image.getBoundingClientRect();galleryTouch=touch.clientY>=rect.top&&touch.clientY<=rect.bottom?{card,x:touch.clientX,y:touch.clientY}:null},{passive:true});
-$('#listings-grid').addEventListener('touchend',event=>{if(!galleryTouch)return;const touch=event.changedTouches[0],dx=touch.clientX-galleryTouch.x,dy=touch.clientY-galleryTouch.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3&&galleryMove(galleryTouch.card,dx<0?1:-1)){gallerySwipeUntil=Date.now()+600;if(event.cancelable)event.preventDefault()}galleryTouch=null},{passive:false});
+function bindCardGallery(container){
+container.addEventListener('click',event=>{const button=event.target.closest('[data-gallery-step]'),open=event.target.closest('[data-open-gallery]');if(button){event.preventDefault();event.stopPropagation();galleryMove(button.closest('.listing-card'),Number(button.dataset.galleryStep))}else if(open){event.preventDefault();event.stopPropagation();if(Date.now()>=gallerySwipeUntil)openGallery(open.dataset.openGallery)}else if(event.target.closest('.card-hit')&&Date.now()<gallerySwipeUntil){event.preventDefault();event.stopPropagation()}},true);
+container.addEventListener('touchstart',event=>{const card=event.target.closest('.listing-card'),touch=event.changedTouches[0];if(!card||!touch)return;const image=card.querySelector('.card-image'),rect=image.getBoundingClientRect();galleryTouch=touch.clientY>=rect.top&&touch.clientY<=rect.bottom?{card,x:touch.clientX,y:touch.clientY}:null},{passive:true});
+container.addEventListener('touchend',event=>{if(!galleryTouch)return;const touch=event.changedTouches[0],dx=touch.clientX-galleryTouch.x,dy=touch.clientY-galleryTouch.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3&&galleryMove(galleryTouch.card,dx<0?1:-1)){gallerySwipeUntil=Date.now()+600;if(event.cancelable)event.preventDefault()}galleryTouch=null},{passive:false});
+}
+bindCardGallery($('#listings-grid'));bindCardGallery($('#favorites-list'));
 $('#photo-close').addEventListener('click',()=>$('#photo-dialog').close());
 $('#photo-prev').addEventListener('click',()=>galleryStep(-1));
 $('#photo-next').addEventListener('click',()=>galleryStep(1));
 $('#photo-dialog').addEventListener('click',event=>{if(event.target===$('#photo-dialog'))$('#photo-dialog').close()});
-$('#photo-dialog').addEventListener('close',()=>{activeGallery=null;renderListings()});
+$('#photo-dialog').addEventListener('close',()=>{activeGallery=null;renderListings();renderFavorites()});
 $('#photo-dialog').addEventListener('keydown',event=>{if(event.key==='ArrowLeft'){event.preventDefault();galleryStep(-1)}else if(event.key==='ArrowRight'){event.preventDefault();galleryStep(1)}});
 $('#photo-dialog').addEventListener('touchstart',event=>{const touch=event.changedTouches[0];photoTouch=touch?{x:touch.clientX,y:touch.clientY}:null},{passive:true});
 $('#photo-dialog').addEventListener('touchend',event=>{if(!photoTouch)return;const touch=event.changedTouches[0],dx=touch.clientX-photoTouch.x,dy=touch.clientY-photoTouch.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3){galleryStep(dx<0?1:-1);if(event.cancelable)event.preventDefault()}photoTouch=null},{passive:false});
+function findListing(id){return listings.find(item=>String(item.id)===String(id))||favorites.find(entry=>String(entry.listing.id)===String(id))?.listing||feed.find(entry=>String(entry.listing.id)===String(id))?.listing}
+function favoriteButton(id){
+  const key=String(id),selected=favoriteIds.has(key),label=tr(selected?'removeFavorite':'addFavorite');
+  return `<button type="button" class="favorite-toggle${selected?' is-favorite':''}" data-favorite-toggle="${safe(key)}" aria-label="${safe(label)}" title="${safe(label)}" aria-pressed="${selected}" ${favoriteBusy.has(key)||favoriteNoteBusy.has(key)?'disabled':''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>`;
+}
+function renderFavoriteButtons(){
+  document.querySelectorAll('[data-favorite-toggle]').forEach(button=>{
+    const id=button.dataset.favoriteToggle,selected=favoriteIds.has(id),label=tr(selected?'removeFavorite':'addFavorite');
+    button.classList.toggle('is-favorite',selected);button.setAttribute('aria-pressed',String(selected));button.setAttribute('aria-label',label);button.title=label;
+    button.disabled=favoriteBusy.has(id)||favoriteNoteBusy.has(id);
+  });
+}
+function resetFavorites(){
+  favoriteIds=new Set();favorites=[];favoritesTotal=0;favoritesLoading=false;favoritesError=false;
+  favoritesRequestId++;favoriteIdsRequestId++;favoriteBusy.clear();favoriteNoteBusy.clear();favoriteDrafts.clear();favoriteNoteErrors.clear();favoriteNoteSaved.clear();
+  renderFavoriteButtons();renderFavorites();
+}
+async function loadFavoriteIds(){
+  if(!token)return;
+  const session=token,requestId=++favoriteIdsRequestId;
+  try{
+    const result=await api('/favorites/ids');
+    if(session!==token||requestId!==favoriteIdsRequestId)return;
+    favoriteIds=new Set(result.ids.map(String));favoritesTotal=result.total;
+    favorites=favorites.filter(entry=>favoriteIds.has(String(entry.listing.id)));
+    renderFavoriteButtons();renderFavorites();
+  }catch(error){if(session===token&&requestId===favoriteIdsRequestId&&view==='favorites')showStatus(error.message,true)}
+}
+async function loadFavorites(more=false){
+  if(!token){resetFavorites();return}
+  const session=token,requestId=++favoritesRequestId;favoritesLoading=true;favoritesError=false;renderFavorites();
+  try{
+    const result=await api('/favorites?'+query({limit:30,offset:more?favorites.length:0}));
+    if(session!==token||requestId!==favoritesRequestId)return;
+    favorites=more?[...favorites,...result.items.filter(item=>!favorites.some(previous=>previous.listing.id===item.listing.id))]:result.items;
+    favoritesTotal=result.total;
+    for(const entry of favorites)favoriteIds.add(String(entry.listing.id));
+    renderFavoriteButtons();
+  }catch(error){
+    if(session!==token||requestId!==favoritesRequestId)return;
+    favoritesError=true;showStatus(error.message,true);
+  }finally{if(session===token&&requestId===favoritesRequestId){favoritesLoading=false;renderFavorites()}}
+}
+function renderFavorites(){
+  const container=$('#favorites-list');if(!container)return;
+  $('#favorites-count').textContent=token?tr('resultCount',favoritesTotal):'';
+  const more=$('#favorites-load-more');more.hidden=!token||favorites.length>=favoritesTotal;more.disabled=favoritesLoading;
+  if(!token){container.innerHTML=`<div class="empty"><strong>${safe(tr('favorites'))}</strong>${safe(tr('favoritesLogin'))}<button type="button" class="secondary-button favorite-login" data-favorite-login>${safe(tr('signIn'))}</button></div>`;return}
+  if(favoritesLoading&&!favorites.length){container.innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;return}
+  if(favoritesError&&!favorites.length){container.innerHTML=`<div class="empty">${safe(tr('loadError'))}<button type="button" class="secondary-button favorite-login" data-favorite-retry>${safe(tr('retryFavorites'))}</button></div>`;return}
+  const active=document.activeElement,focus=active?.matches('#favorites-list textarea')?{id:active.id,start:active.selectionStart,end:active.selectionEnd}:null;
+  container.innerHTML=favorites.length?favorites.map(entry=>{
+    const id=String(entry.listing.id),value=favoriteDrafts.get(id)??entry.note,pending=favoriteNoteBusy.has(id),dirty=value!==entry.note;
+    const status=favoriteNoteErrors.get(id)||(pending?tr('favoriteNoteSaving'):dirty?tr('favoriteNoteUnsaved'):favoriteNoteSaved.has(id)?tr('favoriteNoteSaved'):'');
+    return `<div class="favorite-item">${card(entry.listing)}<form class="favorite-note" data-favorite-note-form="${safe(id)}"><label for="favorite-note-${safe(id)}">${safe(tr('favoriteNotes'))}</label><textarea id="favorite-note-${safe(id)}" name="note" rows="3" maxlength="2000" placeholder="${safe(tr('favoriteNotePlaceholder'))}">${safe(value)}</textarea><div class="favorite-note-footer"><span class="favorite-note-state${favoriteNoteErrors.has(id)?' is-error':''}" role="status">${safe(status)}</span><button type="submit" class="secondary-button" ${pending||!dirty?'disabled':''}>${safe(tr('saveFavoriteNote'))}</button></div></form></div>`;
+  }).join(''):`<div class="empty"><strong>${safe(tr('noFavorites'))}</strong>${safe(tr('favoritesEmpty'))}</div>`;
+  if(focus){const field=document.getElementById(focus.id);if(field){field.focus({preventScroll:true});field.setSelectionRange(focus.start,focus.end)}}
+}
+async function toggleFavorite(id){
+  if(!token){openAuth();return}
+  const key=String(id);if(favoriteBusy.has(key)||favoriteNoteBusy.has(key))return;
+  const session=token,selected=favoriteIds.has(key);favoriteBusy.add(key);favoriteIdsRequestId++;renderFavoriteButtons();
+  try{
+    await api('/favorites/'+encodeURIComponent(key),{method:selected?'DELETE':'PUT'});
+    if(session!==token)return;
+    favoritesRequestId++;favoritesLoading=false;
+    if(selected){favoriteIds.delete(key);favorites=favorites.filter(entry=>String(entry.listing.id)!==key);favoriteDrafts.delete(key);favoriteNoteErrors.delete(key);favoriteNoteSaved.delete(key);favoritesTotal=Math.max(0,favoritesTotal-1)}
+    else{favoriteIds.add(key);favoritesTotal++}
+    showStatus(tr(selected?'favoriteRemoved':'favoriteAdded'));
+    await loadFavoriteIds();
+    if(session===token&&view==='favorites'&&(!selected||!favorites.length&&favoritesTotal>0))loadFavorites();
+  }catch(error){if(session===token)showStatus(error.message,true)}
+  finally{if(session===token){favoriteBusy.delete(key);renderFavoriteButtons();renderFavorites()}}
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-favorite-toggle]');
+  if(button){event.preventDefault();event.stopPropagation();toggleFavorite(button.dataset.favoriteToggle)}
+},true);
+$('#favorites-list').addEventListener('click',event=>{if(event.target.closest('[data-favorite-login]'))openAuth();if(event.target.closest('[data-favorite-retry]'))loadFavorites()});
+$('#favorites-list').addEventListener('input',event=>{
+  const form=event.target.closest('[data-favorite-note-form]');if(!form||event.target.name!=='note')return;
+  const id=form.dataset.favoriteNoteForm,entry=favorites.find(item=>String(item.listing.id)===id);if(!entry)return;
+  if(event.target.value===entry.note)favoriteDrafts.delete(id);else favoriteDrafts.set(id,event.target.value);
+  favoriteNoteErrors.delete(id);favoriteNoteSaved.delete(id);
+  form.querySelector('button[type="submit"]').disabled=favoriteNoteBusy.has(id)||event.target.value===entry.note;
+  const status=form.querySelector('.favorite-note-state');status.classList.remove('is-error');status.textContent=favoriteNoteBusy.has(id)?tr('favoriteNoteSaving'):event.target.value!==entry.note?tr('favoriteNoteUnsaved'):'';
+});
+$('#favorites-list').addEventListener('submit',async event=>{
+  const form=event.target.closest('[data-favorite-note-form]');if(!form)return;event.preventDefault();
+  const id=form.dataset.favoriteNoteForm,entry=favorites.find(item=>String(item.listing.id)===id);if(!entry||favoriteNoteBusy.has(id))return;
+  const session=token,note=form.elements.namedItem('note').value;favoriteDrafts.set(id,note);favoriteNoteBusy.add(id);favoriteNoteErrors.delete(id);renderFavorites();renderFavoriteButtons();
+  try{
+    const result=await api('/favorites/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({note})});
+    if(session!==token)return;
+    const current=favorites.find(item=>String(item.listing.id)===id);if(current){current.note=result.note;current.updatedAt=result.updatedAt}
+    if(favoriteDrafts.get(id)===note)favoriteDrafts.delete(id);
+    favoriteNoteSaved.add(id);
+  }catch(error){if(session===token)favoriteNoteErrors.set(id,error.message)}
+  finally{if(session===token){favoriteNoteBusy.delete(id);renderFavorites();renderFavoriteButtons()}}
+});
+$('#favorites-load-more').addEventListener('click',()=>loadFavorites(true));
+
 function renderListings(){if(!$('#listings-grid'))return;if(listingsLoading&&!listings.length){$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;return}$('#result-count').textContent=tr('resultCount',total);$('#listings-grid').innerHTML=listings.length?listings.map(card).join(''):`<div class="empty"><strong>${safe(tr('noListings'))}</strong>${safe(tr('tryFilters'))}</div>`;$('#load-more').hidden=offset>=total}
 async function loadFeed(more=false){
   const requestId=++feedRequestId;
@@ -373,7 +484,7 @@ async function loadFeed(more=false){
     showStatus(error.message,true);
   }
 }
-function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}<div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · ${safe(money(item.priceUsd,item.priceGel))} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
+function renderFeedCards(){if(!$('#feed-list'))return;$('#feed-list').innerHTML=feed.length?feed.map(event=>{const item=event.listing,photo=validImage(item.imageUrls?.[0]),phones=callLinks(item);return `<article class="feed-item"><div class="feed-photo-wrap">${photo?`<button type="button" class="feed-photo-open" data-open-gallery="${safe(item.id)}" aria-label="${safe(tr('openGallery'))}"><img src="${safe(photo)}" alt="" loading="lazy"></button>`:''}${favoriteButton(item.id)}</div><div><h3>${safe(listingTitle(item))}</h3><p>${safe(item.city)} · ${safe(money(item.priceUsd,item.priceGel))} · ${safe(tr(event.kind==='NEW'?'new':'updated'))}</p></div><div class="feed-actions">${phones?`<div class="call-actions">${phones}</div>`:''}<select data-activity="${item.id}" aria-label="Status"><option value="NEW" ${event.status==='NEW'?'selected':''}>${safe(tr('new'))}</option><option value="SAVED" ${event.status==='SAVED'?'selected':''}>${safe(tr('saved'))}</option><option value="CONTACTED" ${event.status==='CONTACTED'?'selected':''}>${safe(tr('contacted'))}</option><option value="DISMISSED" ${event.status==='DISMISSED'?'selected':''}>${safe(tr('dismissed'))}</option></select><button data-note="${item.id}" title="${safe(tr('notes'))}">✎</button></div><a class="feed-hit" href="${safe(localizedSource(item))}" target="_blank" rel="noopener noreferrer" aria-label="${safe(sourceLabel(item))}: ${safe(listingTitle(item))}"></a></article>`}).join(''):`<div class="empty"><strong>${safe(tr('noFeed'))}</strong>${safe(tr(token?feedStatus?'emptyStatus':'feedEmpty':'loginFirst'))}</div>`}
 function renderFeed(){
   renderFeedCards();
   const all=Object.values(feedCounts).reduce((sum,count)=>sum+count,0);
@@ -400,11 +511,11 @@ async function loadSearches(){
 }
 function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div><h3>${safe(s.name)}</h3><p>${safe([s.sources?.length?s.sources.join(', '):s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.districts?.length?s.districts.map(value=>districtLabel(value,s.city,s.districtsNames?.[value])).join(', '):s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minRooms!=null?tr('minRooms')+' '+s.minRooms:'',s.maxRooms!=null?tr('maxRooms')+' '+s.maxRooms:'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.minPriceUsd!=null||s.minPriceGel!=null?'≥ '+money(s.minPriceUsd,s.minPriceGel):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
-function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(location.hash==='#feed'||location.hash==='#searches')navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
-function showEntry(){entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
+function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(['#feed','#favorites','#searches'].includes(location.hash))navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
+function showEntry(){resetFavorites();entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
 function accessError(error){return /expired/i.test(error.message)?tr('accessExpired'):/not started/i.test(error.message)?tr('accessNotStarted'):/paused/i.test(error.message)?tr('accessPaused'):/invalid/i.test(error.message)?tr('invalidCredentials'):error.message}
-async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language)}catch(error){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
-function signedIn(result,mode='guest'){token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();refreshPushState()}
+async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language);loadFavoriteIds()}catch(error){token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
+function signedIn(result,mode='guest'){resetFavorites();token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();if(view==='favorites')loadFavorites();refreshPushState()}
 function showPushControls(subscribed){
   $('#enable-push').hidden=subscribed;
   $('#test-push').hidden=!subscribed;
@@ -444,7 +555,7 @@ document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener
 $('#currency').addEventListener('change',event=>setCurrency(event.target.value));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#entry-language').addEventListener('change',event=>setLanguage(event.target.value));
-$('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
+$('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
 document.addEventListener('click',event=>{document.querySelectorAll('.source-dropdown[open]').forEach(dropdown=>{if(!dropdown.contains(event.target))dropdown.open=false})});
@@ -460,7 +571,7 @@ $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListi
 $('#hero-browse').addEventListener('click',scrollToRefineResults);
 $('#load-more').addEventListener('click',()=>loadListings(true));
 $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const selected=filters(),number=name=>selected[name]!=null?Number(selected[name]):null;const name=prompt(tr('searchName'),[selected.city,selected.operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...selected,minPriceUsd:number('minPriceUsd'),maxPriceUsd:number('maxPriceUsd'),minPriceGel:number('minPriceGel'),maxPriceGel:number('maxPriceGel'),minBedrooms:number('minBedrooms'),maxBedrooms:number('maxBedrooms'),minRooms:number('minRooms'),maxRooms:number('maxRooms'),minAreaM2:number('minAreaM2'),maxAreaM2:number('maxAreaM2'),minFloor:number('minFloor'),maxFloor:number('maxFloor')})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
-$('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
+$('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;resetFavorites();feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
 $('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#auth-username').value,password:$('#auth-password').value})});signedIn(result,'guest')}catch(error){showStatus(error.message,true)}});
 $('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;const usesGel=search.minPriceGel!=null||search.maxPriceGel!=null;if(usesGel&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}setCurrency(usesGel?'GEL':'USD',true,false);const minValue=usesGel?(search.minPriceGel??(search.minPriceUsd!=null?Number((search.minPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.minPriceUsd??(search.minPriceGel!=null?Number((search.minPriceGel/exchangeRate.usdGel).toFixed(2)):null));const maxValue=usesGel?(search.maxPriceGel??(search.maxPriceUsd!=null?Number((search.maxPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.maxPriceUsd??(search.maxPriceGel!=null?Number((search.maxPriceGel/exchangeRate.usdGel).toFixed(2)):null));syncSources(search.sources?.length?search.sources:(search.source?[search.source]:[]));for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,minPriceUsd:minValue,maxPriceUsd:maxValue,minBedrooms:search.minBedrooms,maxBedrooms:search.maxBedrooms,minRooms:search.minRooms,maxRooms:search.maxRooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}citySelection=search.city||'';await loadDistricts(search.districts?.length?search.districts:search.district?[search.district]:[]);syncPropertyFilters();syncPriceRange();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else {await api('/searches/'+id,{method:'DELETE'});if(feedSearchId===id){feedSearchId='';localStorage.removeItem('geoFeedSearchId')}}await loadSearches();feed=[];if(view==='feed')loadFeed()}catch(error){showStatus(error.message,true)}});
@@ -474,12 +585,12 @@ $('#enable-push').addEventListener('click',enablePush);
 $('#test-push').addEventListener('click',testPush);
 $('#disable-push').addEventListener('click',disablePush);
 function openFeedFromNotification(){feedStatus='';feedSearchId='';feed=[];localStorage.setItem('geoFeedStatus','');localStorage.removeItem('geoFeedSearchId');if(view!=='feed')navigate('feed');else loadFeed()}
-window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','searches'].includes(next)&&next!==view)navigate(next)});
+window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','favorites','searches'].includes(next)&&next!==view)navigate(next)});
 window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
-  navigator.serviceWorker.register('./sw.js?v=20261022-rooms1').then(refreshPushState).catch(()=>{});
+  navigator.serviceWorker.register('./sw.js?v=20261022-favorites1').then(refreshPushState).catch(()=>{});
 }
 setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
