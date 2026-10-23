@@ -113,7 +113,8 @@ Realting ──┘            v
 | `GET /me`, `PATCH /me/language` | Профиль и язык |
 | `GET/POST/PATCH/DELETE /searches` | Сохранённые поиски |
 | `GET /feed`, `PATCH /listings/{id}/activity` | Совпадения и статус обработки |
-| `GET/PUT/PATCH/DELETE /favorites` | Избранное и личные заметки |
+| `GET /favorites`, `GET /favorites/ids` | Список избранного и ID для сердечек |
+| `PUT/PATCH/DELETE /favorites/{listing_id}` | Добавление в избранное, заметка и удаление |
 | `GET /push/public-key`, `POST /push/subscribe`, `POST /push/unsubscribe`, `POST /push/test` | Web Push |
 | `/admin/users`, `/admin/managers`, `/manager/agents` | Аккаунты, менеджеры и агенты; защищённые маршруты |
 
