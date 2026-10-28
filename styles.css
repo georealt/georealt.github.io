@@ -235,3 +235,6 @@ body.entered .entry-screen{display:none}
 .search-actions [data-show-search]{background:#25465a;color:#fff}
 .search-actions [data-show-search]:hover{background:#19374a}
 @media(max-width:760px){.search-item{gap:13px;padding:16px}.search-item h3{font-size:15px}.search-item p{font-size:13px;line-height:1.7}.search-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.search-actions button{width:100%;min-width:0;min-height:44px;padding:10px 9px;font-size:12px}.search-actions [data-show-search]{grid-column:1/-1}}
+
+.feed-item .feed-added{margin-top:5px;color:#496b7e;font-size:12px;line-height:1.4}
+.feed-added time{font-weight:700;color:#28495e}
