@@ -92,7 +92,7 @@ async function api(path,options={}){
   }
   if(response.status===204)return null;
   const body=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(body.detail||tr('loadError'));
+  if(!response.ok){const error=Error(body.detail||tr('loadError'));error.status=response.status;throw error}
   return body;
 }
 function districtLabel(value,city,names={}){return names?.[language]||districtCatalogs.get(city)?.find(item=>item.value===value)?.names?.[language]||value}
@@ -514,7 +514,7 @@ function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
 function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(['#feed','#favorites','#searches'].includes(location.hash))navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
 function showEntry(){resetFavorites();entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
 function accessError(error){return /expired/i.test(error.message)?tr('accessExpired'):/not started/i.test(error.message)?tr('accessNotStarted'):/paused/i.test(error.message)?tr('accessPaused'):/invalid/i.test(error.message)?tr('invalidCredentials'):error.message}
-async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language);loadFavoriteIds()}catch(error){token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
+async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language);loadFavoriteIds()}catch(error){if(![401,403].includes(error.status)){showStatus(error.message,true);return}token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
 function signedIn(result,mode='guest'){resetFavorites();token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();if(view==='favorites')loadFavorites();refreshPushState()}
 function showPushControls(subscribed){
   $('#enable-push').hidden=subscribed;
@@ -592,7 +592,14 @@ if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
   navigator.serviceWorker.register('./sw.js?v=20261026-search-cards1').then(refreshPushState).catch(()=>{});
 }
-setLanguage(language);if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}else if(entryMode==='managed'&&token){syncAccount().then(()=>{if(token)enterWorkspace('managed')})}else showEntry();
+async function restoreSession(){
+  try{
+    if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}
+    else if(entryMode==='managed'&&token){await syncAccount();if(token)enterWorkspace('managed')}
+    else showEntry();
+  }finally{document.documentElement.classList.remove('session-restoring')}
+}
+setLanguage(language);restoreSession();
 setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
 
 setInterval(()=>loadExchangeRate(),3600000);

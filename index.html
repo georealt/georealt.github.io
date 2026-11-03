@@ -6,11 +6,30 @@
   <meta name="theme-color" content="#183655">
   <meta name="description" content="Geo Realt — new property listings in Georgia, in one place.">
   <title>Geo Realt — New listings</title>
+  <script>
+    try {
+      const managed = localStorage.getItem('geoEntryMode') === 'managed' && localStorage.getItem('geoToken');
+      const guest = sessionStorage.getItem('geoGuestEntered') === '1';
+      if (managed || guest) document.documentElement.classList.add('session-restoring');
+    } catch {}
+  </script>
+  <style>
+    .session-boot{display:none}
+    html.session-restoring{background:#f2f4f6}
+    html.session-restoring .entry-screen,html.session-restoring .topbar,html.session-restoring .shell{display:none!important}
+    html.session-restoring .session-boot{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:20px;background:#f2f4f6}
+    .session-boot img{width:64px;height:64px;border-radius:16px}
+    .session-boot-spinner{width:22px;height:22px;border:2px solid #d5dfe5;border-top-color:#315d76;border-radius:50%;animation:session-spin .8s linear infinite}
+    .session-boot-copy{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+    @keyframes session-spin{to{transform:rotate(360deg)}}
+    @media(prefers-reduced-motion:reduce){.session-boot-spinner{animation:none}}
+  </style>
   <link rel="icon" href="./icon.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css?v=20261103-dropdown-fix">
 </head>
 <body>
+  <div class="session-boot" role="status"><img src="./icon.png" alt="Geo Realt" width="64" height="64"><span class="session-boot-spinner" aria-hidden="true"></span><span class="session-boot-copy" data-i18n="loading">Loading…</span></div>
   <section id="entry-screen" class="entry-screen" aria-labelledby="entry-title">
     <div class="entry-card">
       <div class="entry-top"><div class="entry-brand"><img src="./icon.png" alt="" width="52" height="52"><strong>Geo Realt</strong></div><select id="entry-language" aria-label="Interface language"><option value="en">EN</option><option value="ru">RU</option><option value="ka">KA</option></select></div>
@@ -67,6 +86,6 @@
     <button id="photo-next" class="photo-step photo-next" type="button" aria-label="Next photo">›</button>
     <div id="photo-count" class="photo-count"></div>
   </dialog>
-  <script src="./app.js?v=20261028-feed-source3" defer></script>
+  <script src="./app.js?v=20261104-session-restore" defer onerror="document.documentElement.classList.remove('session-restoring')"></script>
 </body>
 </html>
