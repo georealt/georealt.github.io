@@ -186,6 +186,11 @@ body.entered .entry-screen{display:none}
 
 /* City-scoped multi-district picker. */
 .district-menu{max-height:min(340px,55vh);overflow-y:auto;overscroll-behavior:contain}
+.district-searchbar{position:sticky;top:-8px;z-index:1;margin:-8px -8px 6px;padding:10px;background:#fff;border-bottom:1px solid #eef1f3;border-radius:12px 12px 0 0}
+.district-searchbar input{display:block;width:100%;min-width:0;height:40px!important;padding:0 12px;border:1px solid #dbe3e8;border-radius:8px;background:#f6f8fa;color:#253e4e;font:inherit;font-size:16px!important;font-weight:400!important;outline:none}
+.district-searchbar input:focus{border-color:#44708b;box-shadow:0 0 0 2px #e0ebf2;background:#fff}
+.district-no-results{margin:0;padding:15px 10px;color:#65727a;font-size:13px;line-height:1.5}
+.district-menu [hidden]{display:none!important}
 .district-child{padding-left:26px}
 .source-dropdown[data-disabled="true"]>summary{opacity:.55;cursor:default}
 .source-menu-option:has(input:checked){background:#edf3f7;color:#234d67!important}

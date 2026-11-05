@@ -60,6 +60,9 @@ let favoriteIds=new Set(),favorites=[],favoritesTotal=0,favoritesLoading=false,f
 let favoritesRequestId=0,favoriteIdsRequestId=0;
 const favoriteBusy=new Set(),favoriteNoteBusy=new Set(),favoriteDrafts=new Map(),favoriteNoteErrors=new Map(),favoriteNoteSaved=new Set();
 let districtSelection=[],districtLoadId=0,districtFallback=null;
+Object.assign(words.en,{searchDistricts:'Search districts',noDistrictMatches:'No districts found'});
+Object.assign(words.ru,{searchDistricts:'Поиск района',noDistrictMatches:'Районы не найдены'});
+Object.assign(words.ka,{searchDistricts:'უბნის ძებნა',noDistrictMatches:'უბნები ვერ მოიძებნა'});
 const districtCatalogs=new Map();
 let currency='USD', exchangeRate=null;
 const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
@@ -96,6 +99,24 @@ async function api(path,options={}){
   return body;
 }
 function districtLabel(value,city,names={}){return names?.[language]||districtCatalogs.get(city)?.find(item=>item.value===value)?.names?.[language]||value}
+function districtSearchForm(text){return String(text||'').normalize('NFKD').toLowerCase().replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function matchingDistrictValues(items,text){
+  const terms=districtSearchForm(text).split(' ').filter(Boolean),byValue=new Map(items.map(item=>[item.value,item]));
+  const matches=new Set();
+  for(const item of items){
+    const parent=byValue.get(item.parentValue);
+    const names=districtSearchForm([item.value,item.name,...Object.values(item.names||{}),parent?.value,...Object.values(parent?.names||{})].filter(Boolean).join(' '));
+    if(terms.every(term=>names.includes(term))){matches.add(item.value);if(parent)matches.add(parent.value)}
+  }
+  return matches;
+}
+function filterDistrictOptions(){
+  const text=$('#district-search')?.value||'',city=$('#filters').elements.namedItem('city').value;
+  const matches=matchingDistrictValues(districtCatalogs.get(city)||[],text);
+  document.querySelectorAll('#district-menu [data-district-value]').forEach(node=>{node.hidden=!matches.has(node.dataset.districtValue)});
+  document.querySelectorAll('#district-menu [data-district-reset]').forEach(node=>{node.hidden=!!districtSearchForm(text)});
+  const empty=$('#district-no-results');if(empty)empty.hidden=matches.size>0;
+}
 function syncDistricts(selected=districtSelection){
   districtSelection=[...new Set(Array.isArray(selected)?selected:selected?[selected]:[])];
   const city=$('#filters').elements.namedItem('city').value,items=districtCatalogs.get(city)||[];
@@ -113,7 +134,7 @@ function applyDistrictCatalog(items,selected,city){
   districtCatalogs.set(city,items);
   const rows=[];
   for(const row of items){if(row.parentValue)continue;rows.push(row,...items.filter(item=>item.parentValue===row.value))}
-  $('#district-menu').innerHTML=`<label class="source-menu-option"><input id="district-all" type="checkbox"><span>${safe(tr('allDistricts'))}</span></label><div class="source-menu-divider"></div>`+rows.map(row=>`<label class="source-menu-option${row.parentValue?' district-child':''}"><input type="checkbox" name="districts" value="${safe(row.value)}"><span>${safe(row.names?.[language]||row.name)}</span></label>`).join('');
+  $('#district-menu').innerHTML=`<div class="district-searchbar"><input id="district-search" type="search" placeholder="${safe(tr('searchDistricts'))}" aria-label="${safe(tr('searchDistricts'))}" autocomplete="off" spellcheck="false"></div><label class="source-menu-option" data-district-reset><input id="district-all" type="checkbox"><span>${safe(tr('allDistricts'))}</span></label><div class="source-menu-divider" data-district-reset></div>`+rows.map(row=>`<label class="source-menu-option${row.parentValue?' district-child':''}" data-district-value="${safe(row.value)}"><input type="checkbox" name="districts" value="${safe(row.value)}"><span>${safe(row.names?.[language]||row.name)}</span></label>`).join('')+`<p id="district-no-results" class="district-no-results" role="status" hidden>${safe(tr('noDistrictMatches'))}</p>`;
   setDistrictPickerDisabled(!items.length);syncDistricts(selected);
   $('#district-dropdown').removeAttribute('aria-busy');renderSearches();
 }
@@ -560,6 +581,8 @@ $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
 document.addEventListener('click',event=>{document.querySelectorAll('.source-dropdown[open]').forEach(dropdown=>{if(!dropdown.contains(event.target))dropdown.open=false})});
 $('#district-dropdown summary').addEventListener('click',event=>{if($('#district-dropdown').dataset.disabled==='true')event.preventDefault()});
+$('#district-menu').addEventListener('input',event=>{if(event.target.id==='district-search')filterDistrictOptions()});
+$('#district-menu').addEventListener('keydown',event=>{if(event.target.id!=='district-search')return;if(event.key==='Enter')event.preventDefault();if(event.key==='Escape'){event.preventDefault();if(event.target.value){event.target.value='';filterDistrictOptions()}else{$('#district-dropdown').open=false;$('#district-dropdown summary').focus()}}});
 $('#district-menu').addEventListener('change',event=>{if(event.target.id==='district-all')syncDistricts([]);else if(event.target.matches('input[name="districts"]'))syncDistricts([...document.querySelectorAll('#district-menu input[name="districts"]:checked')].map(input=>input.value))});
 $('#filters').elements.namedItem('propertyType').addEventListener('change',syncPropertyFilters);
 $('#filters').elements.namedItem('city').addEventListener('change',event=>{citySelection=event.target.value;districtSelection=[];$('#district-menu').replaceChildren();loadDistricts([])});
