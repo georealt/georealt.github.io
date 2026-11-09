@@ -322,7 +322,7 @@ function localizedSource(item){
   }
   return url.href;
 }
-function validImage(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&(['static-api-statements.tnet.ge','static.ss.ge'].includes(u.hostname)||(u.hostname==='storage.googleapis.com'&&u.pathname.startsWith('/bd-ge-01/realty/'))||(u.hostname==='realting.com'&&/^\/uploads\/(images|bigSlider)\//.test(u.pathname))||(/^scontent\.[a-z0-9.-]+\.fbcdn\.net$/i.test(u.hostname)))?u.href:''}catch{return ''}}
+function validImage(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&(['static-api-statements.tnet.ge','static.ss.ge'].includes(u.hostname)||(u.hostname==='storage.googleapis.com'&&u.pathname.startsWith('/bd-ge-01/realty/'))||(u.hostname==='realting.com'&&/^\/uploads\/(images|bigSlider)\//.test(u.pathname))||(/^scontent[.-][a-z0-9.-]+\.fbcdn\.net$/i.test(u.hostname)))?u.href:''}catch{return ''}}
 function plainDescription(value){return String(value||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/\s+/g,' ').trim()}
 function galleryImages(item){return (item.imageUrls||[]).map(validImage).filter(Boolean)}
 function listingTitle(item){return item.titles?.[language]||item.title}
