@@ -128,7 +128,7 @@ function renderSeek(){
   if(seekError){list.innerHTML=`<div class="empty">${safe(tr('loadError'))}<button class="secondary-button favorite-login" type="button" data-seek-retry>${safe(tr('refresh'))}</button></div>`;return}
   list.innerHTML=seekItems.length?seekItems.map(item=>{
     const stamp=item.publishedAt||item.firstSeenAt;
-    const translated=language==='ru'&&item.sourceLanguage!=='ru'&&item.translations?.ru;
+    const translated=language==='ru'&&item.translations?.ru;
     return `<article class="seek-card"><div class="seek-card-top"><span class="seek-source">Facebook</span><span class="seek-original">${safe(tr(translated?'seekTranslated':'seekOriginal'))} · ${safe((translated?'ru':item.sourceLanguage).toUpperCase())}</span></div><h3>${safe(item.authorName||tr('seekTitle'))}</h3><p class="seek-group">${safe(item.groupName)}</p><div class="seek-text" lang="${safe(translated?'ru':item.sourceLanguage)}">${safe(translated||item.text)}</div><footer><div class="seek-date"><span>${safe(tr(item.publishedAt?'seekPublished':'seekFound'))}</span><time datetime="${safe(stamp)}">${safe(seekDate(stamp))}</time></div><a class="secondary-button" href="${safe(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${safe(tr('seekOpen'))}</a></footer></article>`
   }).join(''):`<div class="empty"><strong>${safe(tr($('#seek-query').value.trim()?'seekNoMatches':'seekEmpty'))}</strong>${safe(tr($('#seek-query').value.trim()?'tryFilters':'seekEmptyHint'))}</div>`;
 }
