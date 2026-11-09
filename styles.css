@@ -247,3 +247,33 @@ body.entered .entry-screen{display:none}
 
 .feed-item .feed-added{margin-top:5px;color:#496b7e;font-size:12px;line-height:1.4}
 .feed-added time{font-weight:700;color:#28495e}
+
+/* Housing seekers: text first, separate from property offers. */
+#seek-view{scroll-margin-top:95px}
+.seek-filters{display:flex;gap:10px;align-items:end;margin:0 0 18px}
+.seek-filters label{display:grid;gap:7px;flex:1;min-width:0;color:#65727a;font-size:13px;font-weight:600}
+.seek-filters input{width:100%;min-width:0;height:44px;border:1px solid #dbe1e4;border-radius:9px;padding:0 12px;background:white;font-size:16px;color:#25343d}
+.seek-filters .primary-button{height:44px}
+.seek-summary{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;margin-bottom:16px;color:#73828c;font-size:12px;line-height:1.5}
+.seek-warning{color:#9a5d2b}
+.seek-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.seek-list>.empty{grid-column:1/-1}
+.seek-card{min-width:0;padding:21px;border:1px solid #e1e6e9;border-radius:15px;background:#fff;box-shadow:0 4px 18px #182b3708}
+.seek-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.seek-source{padding:5px 9px;background:#edf3f8;color:#285472;border-radius:6px;font-size:12px;font-weight:700}
+.seek-original{font-size:11px;color:#87949d}
+.seek-card h3{font-size:18px;line-height:1.4;margin:16px 0 4px;color:#243d4c;overflow-wrap:anywhere}
+.seek-group{font-size:12px;line-height:1.5;color:#81909a;margin:0 0 16px}
+.seek-text{white-space:pre-line;font-size:15px;line-height:1.65;color:#344b59;overflow-wrap:anywhere;max-height:290px;overflow:auto}
+.seek-card footer{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:14px;border-top:1px solid #edf0f2;margin-top:20px;padding-top:14px}
+.seek-date{display:grid;gap:4px;font-size:11px;color:#8a969e}.seek-date time{font-size:13px;font-weight:600;color:#405967}
+.seek-card footer a{text-decoration:none;display:inline-flex;align-items:center;min-height:40px;line-height:1.4}
+@media(max-width:1000px){.seek-list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){
+ .nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:1px}
+ .sidebar{padding-inline:4px}
+ .nav-item{padding-inline:0;font-size:12px;font-weight:600}
+ .nav-item>span:nth-child(2){white-space:nowrap;overflow-wrap:normal;text-wrap:nowrap;letter-spacing:-.35px}
+ .nav-item .count{margin-left:27px}
+ #seek-view{scroll-margin-top:80px}.seek-card{padding:18px}.seek-text{font-size:16px}
+}

@@ -70,6 +70,10 @@ Object.assign(words.en,{username:'Username',entryTitle:'Your property radar',ent
 Object.assign(words.en,{teamManagement:'Team'});
 Object.assign(words.ru,{username:'Логин',entryTitle:'Радар недвижимости',entryIntro:'Введите выданные вам логин и пароль.',guest:'Гость',admin:'Админ',teamManagement:'Команда',invalidCredentials:'Неверный логин или пароль.',accessPaused:'Доступ приостановлен.',accessExpired:'Срок доступа закончился.',accessNotStarted:'Срок доступа ещё не начался.'});
 Object.assign(words.ka,{username:'მომხმარებლის სახელი',entryTitle:'უძრავი ქონების რადარი',entryIntro:'შეიყვანეთ თქვენთვის გადაცემული მომხმარებლის სახელი და პაროლი.',guest:'სტუმარი',admin:'ადმინი',teamManagement:'გუნდი',invalidCredentials:'მომხმარებლის სახელი ან პაროლი არასწორია.',accessPaused:'წვდომა შეჩერებულია.',accessExpired:'წვდომის ვადა ამოიწურა.',accessNotStarted:'წვდომის ვადა ჯერ არ დაწყებულა.'});
+Object.assign(words.en,{seekTab:'Seek',seekEyebrow:'HOUSING REQUESTS',seekTitle:'Looking for a home',seekIntro:'Posts from people looking for housing. Open the original post to contact the author.',seekSearch:'Search requests',seekPlaceholder:'District, budget, requirements…',seekFind:'Find',seekNoMatches:'No matching requests',seekEmpty:'No housing requests yet',seekEmptyHint:'Matching posts will appear after collection. Property offers and advertising are excluded.',seekLogin:'Sign in to view housing requests.',seekOpen:'Open on Facebook ↗',seekPublished:'Published',seekFound:'Found',seekPending:'First collection is pending',seekRunning:'Checking the group…',seekCollectionError:'Collection needs attention. Previously found requests remain available.',seekCollected:'Last checked',seekOriginal:'Original text',seekCount:n=>`${n} ${n===1?'request':'requests'}`,feedTab:'New',searchesTab:'Searches'});
+Object.assign(words.ru,{seekTab:'Ищут',seekEyebrow:'ЗАПРОСЫ НА ЖИЛЬЁ',seekTitle:'Ищут жильё',seekIntro:'Публикации людей, которые ищут жильё. Для связи с автором откройте оригинал.',seekSearch:'Поиск по запросам',seekPlaceholder:'Район, бюджет, пожелания…',seekFind:'Найти',seekNoMatches:'Подходящих запросов нет',seekEmpty:'Запросов на жильё пока нет',seekEmptyHint:'Подходящие публикации появятся после сбора. Предложения сдачи и реклама исключаются.',seekLogin:'Войдите, чтобы увидеть запросы на жильё.',seekOpen:'Открыть в Facebook ↗',seekPublished:'Опубликовано',seekFound:'Найдено',seekPending:'Ожидается первый сбор',seekRunning:'Проверяем группу…',seekCollectionError:'Сбор требует проверки. Ранее найденные запросы доступны.',seekCollected:'Последняя проверка',seekOriginal:'Оригинал',seekCount:n=>`${n} ${new Intl.PluralRules('ru').select(n)==='one'?'запрос':new Intl.PluralRules('ru').select(n)==='few'?'запроса':'запросов'}`});
+Object.assign(words.ka,{seekTab:'ეძებენ',seekEyebrow:'საცხოვრებლის ძიება',seekTitle:'ეძებენ საცხოვრებელს',seekIntro:'პუბლიკაციები ადამიანებისგან, რომლებიც საცხოვრებელს ეძებენ. ავტორთან დასაკავშირებლად გახსენით ორიგინალი.',seekSearch:'მოთხოვნების ძიება',seekPlaceholder:'უბანი, ბიუჯეტი, სურვილები…',seekFind:'ძებნა',seekNoMatches:'შესაბამისი მოთხოვნები ვერ მოიძებნა',seekEmpty:'მოთხოვნები ჯერ არ არის',seekEmptyHint:'შესაბამისი პუბლიკაციები შეგროვების შემდეგ გამოჩნდება. გაქირავების შეთავაზებები და რეკლამა გამოირიცხება.',seekLogin:'მოთხოვნების სანახავად შედით ანგარიშში.',seekOpen:'Facebook-ზე გახსნა ↗',seekPublished:'გამოქვეყნდა',seekFound:'ნაპოვნია',seekPending:'ველოდებით პირველ შეგროვებას',seekRunning:'ვამოწმებთ ჯგუფს…',seekCollectionError:'შეგროვებას შემოწმება სჭირდება. ადრე ნაპოვნი მოთხოვნები ხელმისაწვდომია.',seekCollected:'ბოლო შემოწმება',seekOriginal:'ორიგინალი',seekCount:n=>`${n} მოთხოვნა`,listingsTab:'ობიექტები',favoritesTab:'რჩეული'});
+let seekItems=[],seekTotal=0,seekLoading=false,seekError=false,seekCollection=null,seekRequestId=0;
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
 let entryMode=localStorage.getItem('geoEntryMode')||(sessionStorage.getItem('geoGuestEntered')==='1'?'guest':''), workspaceStarted=false;
 let listingsLoading=false;
@@ -97,6 +101,35 @@ async function api(path,options={}){
   const body=await response.json().catch(()=>({}));
   if(!response.ok){const error=Error(body.detail||tr('loadError'));error.status=response.status;throw error}
   return body;
+}
+function seekDate(value){const date=new Date(value);return Number.isFinite(date.getTime())?new Intl.DateTimeFormat(language,{dateStyle:'medium',timeStyle:'short'}).format(date):''}
+async function loadSeek(more=false){
+  if(!token){renderSeek();return}
+  const session=token,requestId=++seekRequestId;
+  seekLoading=true;seekError=false;renderSeek();
+  const params=new URLSearchParams({limit:'30',offset:String(more?seekItems.length:0)});
+  const q=$('#seek-query').value.trim();if(q)params.set('q',q);
+  try{const result=await api('/seek?'+params);
+    if(session!==token||requestId!==seekRequestId)return;
+    seekItems=more?[...seekItems,...result.items.filter(item=>!seekItems.some(previous=>previous.id===item.id))]:result.items;
+    seekTotal=result.total;seekCollection=result.collection;
+  }catch(error){if(session!==token||requestId!==seekRequestId)return;seekError=true}
+  finally{if(session===token&&requestId===seekRequestId){seekLoading=false;renderSeek()}}
+}
+function renderSeek(){
+  const list=$('#seek-list');if(!list)return;
+  $('#seek-count').textContent=token?tr('seekCount',seekTotal):'';
+  $('#seek-load-more').hidden=!token||seekItems.length>=seekTotal;
+  $('#seek-load-more').disabled=seekLoading;$('#seek-refresh').disabled=seekLoading;
+  const status=$('#seek-collection');status.classList.toggle('seek-warning',seekCollection?.state==='error');
+  status.textContent=!token?'':seekCollection?.state==='error'?tr('seekCollectionError'):seekCollection?.state==='pending'?tr('seekPending'):seekCollection?.state==='running'?tr('seekRunning'):seekCollection?.lastFinishedAt?`${tr('seekCollected')}: ${seekDate(seekCollection.lastFinishedAt)}`:'';
+  if(!token){list.innerHTML=`<div class="empty"><strong>${safe(tr('seekTitle'))}</strong>${safe(tr('seekLogin'))}<button class="secondary-button favorite-login" type="button" data-seek-login>${safe(tr('signIn'))}</button></div>`;return}
+  if(seekLoading&&!seekItems.length){list.innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;return}
+  if(seekError){list.innerHTML=`<div class="empty">${safe(tr('loadError'))}<button class="secondary-button favorite-login" type="button" data-seek-retry>${safe(tr('refresh'))}</button></div>`;return}
+  list.innerHTML=seekItems.length?seekItems.map(item=>{
+    const stamp=item.publishedAt||item.firstSeenAt;
+    return `<article class="seek-card"><div class="seek-card-top"><span class="seek-source">Facebook</span><span class="seek-original">${safe(tr('seekOriginal'))} · ${safe(item.sourceLanguage.toUpperCase())}</span></div><h3>${safe(item.authorName||tr('seekTitle'))}</h3><p class="seek-group">${safe(item.groupName)}</p><div class="seek-text" lang="${safe(item.sourceLanguage)}">${safe(item.text)}</div><footer><div class="seek-date"><span>${safe(tr(item.publishedAt?'seekPublished':'seekFound'))}</span><time datetime="${safe(stamp)}">${safe(seekDate(stamp))}</time></div><a class="secondary-button" href="${safe(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${safe(tr('seekOpen'))}</a></footer></article>`
+  }).join(''):`<div class="empty"><strong>${safe(tr($('#seek-query').value.trim()?'seekNoMatches':'seekEmpty'))}</strong>${safe(tr($('#seek-query').value.trim()?'tryFilters':'seekEmptyHint'))}</div>`;
 }
 function districtLabel(value,city,names={}){return names?.[language]||districtCatalogs.get(city)?.find(item=>item.value===value)?.names?.[language]||value}
 function districtSearchForm(text){return String(text||'').normalize('NFKD').toLowerCase().replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
@@ -203,9 +236,9 @@ async function loadCities(){
     }
   }
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();renderFavorites();renderFavoriteButtons();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();renderFavorites();renderFavoriteButtons();renderSeek();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function scrollToRefineResults(){requestAnimationFrame(()=>{const target=$('.filter-card .section-head'),header=$('.topbar');if(!target)return;const offset=(header?.getBoundingClientRect().height||0)+12;window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-offset,behavior:'smooth'});});}
-function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','favorites','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')scrollToRefineResults();if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches();if(next==='favorites'){loadFavorites();requestAnimationFrame(()=>{const target=$('#favorites-view .results-head');window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-($('.topbar')?.getBoundingClientRect().height||0)-12,behavior:'smooth'})})}}
+function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','favorites','seek','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')scrollToRefineResults();if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches();if(next==='seek'){loadSeek();requestAnimationFrame(()=>$('#seek-view').scrollIntoView({behavior:'smooth',block:'start'}))}if(next==='favorites'){loadFavorites();requestAnimationFrame(()=>{const target=$('#favorites-view .results-head');window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-($('.topbar')?.getBoundingClientRect().height||0)-12,behavior:'smooth'})})}}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
 Object.assign(words.ru,{minFloor:'Этаж от',maxFloor:'Этаж до'});
 Object.assign(words.ka,{minFloor:'სართული მინ.',maxFloor:'სართული მაქს.'});
@@ -398,6 +431,7 @@ function renderFavoriteButtons(){
   });
 }
 function resetFavorites(){
+  seekItems=[];seekTotal=0;seekCollection=null;seekError=false;seekLoading=false;seekRequestId++;
   favoriteIds=new Set();favorites=[];favoritesTotal=0;favoritesLoading=false;favoritesError=false;
   favoritesRequestId++;favoriteIdsRequestId++;favoriteBusy.clear();favoriteNoteBusy.clear();favoriteDrafts.clear();favoriteNoteErrors.clear();favoriteNoteSaved.clear();
   renderFavoriteButtons();renderFavorites();
@@ -532,11 +566,11 @@ async function loadSearches(){
 }
 function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div class="search-description"><h3>${safe(s.name)}</h3><p>${safe([s.sources?.length?s.sources.join(', '):s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.districts?.length?s.districts.map(value=>districtLabel(value,s.city,s.districtsNames?.[value])).join(', '):s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minRooms!=null?tr('minRooms')+' '+s.minRooms:'',s.maxRooms!=null?tr('maxRooms')+' '+s.maxRooms:'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.minPriceUsd!=null||s.minPriceGel!=null?'≥ '+money(s.minPriceUsd,s.minPriceGel):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><div class="search-actions"><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></div></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
-function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(['#feed','#favorites','#searches'].includes(location.hash))navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
+function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(['#feed','#favorites','#seek','#searches'].includes(location.hash))navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
 function showEntry(){resetFavorites();entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
 function accessError(error){return /expired/i.test(error.message)?tr('accessExpired'):/not started/i.test(error.message)?tr('accessNotStarted'):/paused/i.test(error.message)?tr('accessPaused'):/invalid/i.test(error.message)?tr('invalidCredentials'):error.message}
 async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language);loadFavoriteIds()}catch(error){if(![401,403].includes(error.status)){showStatus(error.message,true);return}token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
-function signedIn(result,mode='guest'){resetFavorites();token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();if(view==='favorites')loadFavorites();refreshPushState()}
+function signedIn(result,mode='guest'){resetFavorites();token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();if(view==='favorites')loadFavorites();if(view==='seek')loadSeek();refreshPushState()}
 function showPushControls(subscribed){
   $('#enable-push').hidden=subscribed;
   $('#test-push').hidden=!subscribed;
@@ -572,6 +606,10 @@ async function disablePush(){
   try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe();localStorage.removeItem('geoPushEndpoint');showPushControls(false);showStatus(tr('pushOff'))}catch(error){showStatus(error.message,true)}
 }
 async function testPush(){try{const registration=await navigator.serviceWorker.ready;const subscription=await registration.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(!endpoint)throw Error(tr('pushUnsupported'));await api('/push/test',{method:'POST',body:JSON.stringify({endpoint})});showStatus(tr('testSent'))}catch(error){showStatus(error.message,true)}}
+$('#seek-filters').addEventListener('submit',event=>{event.preventDefault();loadSeek()});
+$('#seek-refresh').addEventListener('click',()=>loadSeek());
+$('#seek-load-more').addEventListener('click',()=>loadSeek(true));
+$('#seek-list').addEventListener('click',event=>{if(event.target.closest('[data-seek-login]'))openAuth();if(event.target.closest('[data-seek-retry]'))loadSeek()});
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.view)));
 $('#currency').addEventListener('change',event=>setCurrency(event.target.value));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
@@ -608,9 +646,9 @@ $('#enable-push').addEventListener('click',enablePush);
 $('#test-push').addEventListener('click',testPush);
 $('#disable-push').addEventListener('click',disablePush);
 function openFeedFromNotification(){feedStatus='';feedSearchId='';feed=[];localStorage.setItem('geoFeedStatus','');localStorage.removeItem('geoFeedSearchId');if(view!=='feed')navigate('feed');else loadFeed()}
-window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','favorites','searches'].includes(next)&&next!==view)navigate(next)});
+window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','favorites','seek','searches'].includes(next)&&next!==view)navigate(next)});
 window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed();if(location.hash==='#seek')loadSeek()}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
   navigator.serviceWorker.register('./sw.js?v=20261026-search-cards1').then(refreshPushState).catch(()=>{});
@@ -623,6 +661,6 @@ async function restoreSession(){
   }finally{document.documentElement.classList.remove('session-restoring')}
 }
 setLanguage(language);restoreSession();
-setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed()}},60000);
+setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed();if(view==='seek')loadSeek()}},60000);
 
 setInterval(()=>loadExchangeRate(),3600000);
