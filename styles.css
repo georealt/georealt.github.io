@@ -277,3 +277,5 @@ body.entered .entry-screen{display:none}
  .nav-item .count{margin-left:27px}
  #seek-view{scroll-margin-top:80px}.seek-card{padding:18px}.seek-text{font-size:16px}
 }
+
+.source-mark.fb-mark{background:#1877f2}
