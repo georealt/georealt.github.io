@@ -304,10 +304,10 @@ async function loadExchangeRate(initial=false){
 }
 function query(values){const params=new URLSearchParams();for(const [key,value] of Object.entries(values)){if(value==null||value==='')continue;if(Array.isArray(value)){for(const item of value)params.append(key,item)}else params.set(key,String(value))}return params.toString()}
 async function loadListings(more=false){listingsLoading=true;if(!more){offset=0;listings=[]}$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loading'))}</div>`;try{const data=await api('/listings?'+query({...filters(),limit:30,offset}));listings=more?[...listings,...data.items]:data.items;total=data.total;offset=listings.length;listingsLoading=false;renderListings()}catch(error){listingsLoading=false;$('#listings-grid').innerHTML=`<div class="empty">${safe(tr('loadError'))}</div>`;showStatus(error.message,true)}}
-function sourceName(item){return {'myhome.ge':'MyHome.ge','ss.ge':'ss.ge','korter.ge':'Korter.ge','realting.com':'Realting.com','facebook.com':'Facebook'}[item.source]||item.source}
+function sourceName(item){return {'myhome.ge':'MyHome.ge','ss.ge':'ss.ge','realting.com':'Realting.com','facebook.com':'Facebook'}[item.source]||item.source}
 function sourceLabel(item){return tr('openListing').replace('{source}',sourceName(item))}
 function phoneOnSource(item){return tr('contactOnSourceLabel').replace('{source}',sourceName(item))}
-function validSource(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&['www.myhome.ge','home.ss.ge','korter.ge','realting.com','www.facebook.com'].includes(u.hostname)?u.href:'#'}catch{return '#'}}
+function validSource(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&!u.port&&['www.myhome.ge','home.ss.ge','realting.com','www.facebook.com'].includes(u.hostname)?u.href:'#'}catch{return '#'}}
 function localizedSource(item){
   const source=validSource(item.sourceUrl);
   if(source==='#')return source;
@@ -655,6 +655,27 @@ if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
   navigator.serviceWorker.register('./sw.js?v=20261026-search-cards1').then(refreshPushState).catch(()=>{});
 }
+function setupAutoHideHeader(){
+  const header=$('.topbar');if(!header)return;
+  let previousY=0,direction=0,distance=0;
+  const show=()=>header.classList.remove('is-hidden');
+  header.addEventListener('focusin',show);
+  window.addEventListener('scroll',()=>{
+    const maxY=Math.max(0,document.documentElement.scrollHeight-window.innerHeight);
+    const y=Math.max(0,Math.min(window.scrollY,maxY));
+    const delta=y-previousY;previousY=y;
+    if(y<=header.offsetHeight){show();direction=0;distance=0;return}
+    if(!delta)return;
+    const nextDirection=Math.sign(delta);
+    if(nextDirection!==direction){direction=nextDirection;distance=0}
+    distance+=Math.abs(delta);
+    if(distance<12)return;
+    if(direction<0)show();
+    else if(document.body.classList.contains('entered')&&!header.contains(document.activeElement))header.classList.add('is-hidden');
+    distance=0;
+  },{passive:true});
+}
+setupAutoHideHeader();
 async function restoreSession(){
   try{
     if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}
