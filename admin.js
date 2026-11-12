@@ -40,7 +40,7 @@ async function load(){
     agents=await api('/manager/agents');renderAgents();return;
   }
   if(!me.isAdmin)throw Error('Доступ к панели есть только у администратора или менеджера.');
-  $('#owner-panel').hidden=false;
+  $('#owner-panel').hidden=false;$('#admin-intro').textContent='Управляйте партнёрами, оплатами и доступом пользователей.';
   accounts=(await api('/admin/users')).items;managers=(await api('/admin/managers')).items;
   renderAccounts();renderManagers();await loadReferrals();
 }
