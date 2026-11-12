@@ -283,3 +283,5 @@ body.entered .entry-screen{display:none}
 .topbar{transition:transform .2s ease}
 .topbar.is-hidden{transform:translateY(-105%);pointer-events:none}
 @media(prefers-reduced-motion:reduce){.topbar{transition:none}}
+
+.source-mark.threads-mark{background:#181818;color:#fff}
