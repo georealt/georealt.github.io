@@ -66,15 +66,21 @@ Object.assign(words.ka,{searchDistricts:'უბნის ძებნა',noDist
 const districtCatalogs=new Map();
 let currency='USD', exchangeRate=null;
 const preferredCurrency=localStorage.getItem('geoCurrency')==='GEL'?'GEL':'USD';
-Object.assign(words.en,{username:'Username',entryTitle:'Your property radar',entryIntro:'Sign in with the username and password provided to you.',guest:'Guest',admin:'Admin',invalidCredentials:'Invalid username or password.',accessPaused:'Access is paused.',accessExpired:'Your access period has ended.',accessNotStarted:'Your access period has not started yet.'});
+let tributePollGeneration=0;
+Object.assign(words.en,{username:'Username',entryTitle:'Your property radar',entryIntro:'Sign in with the username and password provided to you.',subscribe:'Subscribe',subscribePending:'Tribute payments are being set up. Please check back soon.',admin:'Admin',invalidCredentials:'Invalid username or password.',accessPaused:'Access is paused.',accessExpired:'Your access period has ended.',accessNotStarted:'Your access period has not started yet.'});
+Object.assign(words.en,{subscribeEyebrow:'GEO REALT FOR TEAMS',subscribeTitle:'Access for your team',subscribeIntro:'Each plan includes a manager account for up to 10 agents. Choose a new login or enter your existing manager login and password. Access activates after payment confirmation.',customTeamTerms:'Need fewer or more than 10 agent seats? We discuss a suitable plan and terms individually.',planPeriod:n=>`${n} ${n===1?'month':'months'} · manager + up to 10 agents`,telegramHandle:'Telegram username',accessPlan:'Access period',continueToPayment:'Continue',billingUnavailable:'Online payment is not configured yet.',paymentPending:'Payment confirmation is taking longer than expected. You can return to this page later.',paymentFailed:'We could not start payment. Please try again.',accessActive:'ACCESS ACTIVE',connectTelegramTitle:'Connect Telegram',connectTelegramIntro:'Your Geo Realt manager account is active. Start the bot to receive new property listings.',joinTelegram:'Join @georealt_bot',continueToGeoRealt:'Continue to Geo Realt',telegramRequired:'Enter your Telegram username to receive listing alerts.',verifyTelegramTitle:'Verify your Telegram account',verifyTelegramText:'Open @georealt_bot using the Telegram account with this username. Return here after the bot confirms the connection.',openTelegram:'Open @georealt_bot',waitingTelegram:'Waiting for Telegram confirmation…',telegramVerified:'Telegram connected. Your payment link is ready.',payInTribute:'Continue to Tribute',paymentProcessing:'Payment received. Activating your Geo Realt access…'});
 Object.assign(words.en,{teamManagement:'Team'});
-Object.assign(words.ru,{username:'Логин',entryTitle:'Радар недвижимости',entryIntro:'Введите выданные вам логин и пароль.',guest:'Гость',admin:'Админ',teamManagement:'Команда',invalidCredentials:'Неверный логин или пароль.',accessPaused:'Доступ приостановлен.',accessExpired:'Срок доступа закончился.',accessNotStarted:'Срок доступа ещё не начался.'});
-Object.assign(words.ka,{username:'მომხმარებლის სახელი',entryTitle:'უძრავი ქონების რადარი',entryIntro:'შეიყვანეთ თქვენთვის გადაცემული მომხმარებლის სახელი და პაროლი.',guest:'სტუმარი',admin:'ადმინი',teamManagement:'გუნდი',invalidCredentials:'მომხმარებლის სახელი ან პაროლი არასწორია.',accessPaused:'წვდომა შეჩერებულია.',accessExpired:'წვდომის ვადა ამოიწურა.',accessNotStarted:'წვდომის ვადა ჯერ არ დაწყებულა.'});
+Object.assign(words.ru,{username:'Логин',entryTitle:'Радар недвижимости',entryIntro:'Введите выданные вам логин и пароль.',subscribe:'Подписаться',subscribePending:'Приём оплаты через Tribute пока настраивается. Попробуйте позже.',admin:'Админ',teamManagement:'Команда',invalidCredentials:'Неверный логин или пароль.',accessPaused:'Доступ приостановлен.',accessExpired:'Срок доступа закончился.',accessNotStarted:'Срок доступа ещё не начался.'});
+Object.assign(words.ru,{subscribeEyebrow:'GEO REALT ДЛЯ КОМАНД',subscribeTitle:'Доступ для вашей команды',subscribeIntro:'Каждый тариф включает аккаунт менеджера и до 10 агентов. Придумайте новый логин или введите логин и пароль существующего менеджера. Доступ включится после подтверждения оплаты.',customTeamTerms:'Если нужно меньше или больше 10 мест для агентов, индивидуально обсудим подходящий тариф и условия.',planPeriod:n=>`${n} ${n===1?'месяц':n>=2&&n<=4?'месяца':'месяцев'} · менеджер и до 10 агентов`,telegramHandle:'Имя пользователя Telegram',accessPlan:'Срок доступа',continueToPayment:'Продолжить',billingUnavailable:'Онлайн-оплата пока не настроена.',paymentPending:'Подтверждение оплаты задерживается. Можно вернуться на эту страницу позже.',paymentFailed:'Не удалось начать оплату. Попробуйте ещё раз.',accessActive:'ДОСТУП АКТИВЕН',connectTelegramTitle:'Подключить Telegram',connectTelegramIntro:'Аккаунт менеджера Geo Realt активирован. Запустите бота, чтобы получать новые объявления.',joinTelegram:'Подключить @georealt_bot',continueToGeoRealt:'Перейти в Geo Realt',telegramRequired:'Укажите Telegram, чтобы получать уведомления об объявлениях.',verifyTelegramTitle:'Подтвердите Telegram',verifyTelegramText:'Откройте @georealt_bot из аккаунта с указанным именем пользователя. Вернитесь сюда после подтверждения ботом.',openTelegram:'Открыть @georealt_bot',waitingTelegram:'Ждём подтверждения в Telegram…',telegramVerified:'Telegram подключён. Ссылка на оплату готова.',payInTribute:'Перейти к оплате в Tribute',paymentProcessing:'Оплата получена. Активируем доступ Geo Realt…'});
+Object.assign(words.ka,{username:'მომხმარებლის სახელი',entryTitle:'უძრავი ქონების რადარი',entryIntro:'შეიყვანეთ თქვენთვის გადაცემული მომხმარებლის სახელი და პაროლი.',subscribe:'გამოწერა',subscribePending:'Tribute-ით გადახდა ჯერ დაყენების პროცესშია. სცადეთ მოგვიანებით.',admin:'ადმინი',teamManagement:'გუნდი',invalidCredentials:'მომხმარებლის სახელი ან პაროლი არასწორია.',accessPaused:'წვდომა შეჩერებულია.',accessExpired:'წვდომის ვადა ამოიწურა.',accessNotStarted:'წვდომის ვადა ჯერ არ დაწყებულა.'});
+Object.assign(words.ka,{subscribeEyebrow:'GEO REALT გუნდებისთვის',subscribeTitle:'წვდომა თქვენი გუნდისთვის',subscribeIntro:'თითოეული ტარიფი მოიცავს მენეჯერის ანგარიშსა და 10-მდე აგენტს. შექმენით ახალი მომხმარებლის სახელი ან შეიყვანეთ არსებული მენეჯერის მონაცემები. გადახდის დადასტურების შემდეგ წვდომა ჩაირთვება.',customTeamTerms:'თუ 10-ზე ნაკლები ან მეტი აგენტი გჭირდებათ, შესაბამის ტარიფსა და პირობებს ინდივიდუალურად განვიხილავთ.',planPeriod:n=>`${n} თვე · მენეჯერი და მაქს. 10 აგენტი`,telegramHandle:'Telegram მომხმარებლის სახელი',accessPlan:'წვდომის ვადა',continueToPayment:'გაგრძელება',billingUnavailable:'ონლაინ გადახდა ჯერ დაყენებული არ არის.',paymentPending:'გადახდის დადასტურება იგვიანებს. მოგვიანებით შეგიძლიათ ამ გვერდზე დაბრუნდეთ.',paymentFailed:'გადახდის დაწყება ვერ მოხერხდა. სცადეთ ხელახლა.',accessActive:'წვდომა აქტიურია',connectTelegramTitle:'Telegram-ის დაკავშირება',connectTelegramIntro:'Geo Realt-ის მენეჯერის ანგარიში გააქტიურდა. განცხადებების მისაღებად გახსენით ბოტი.',joinTelegram:'@georealt_bot-ის ჩართვა',continueToGeoRealt:'Geo Realt-ში გადასვლა',telegramRequired:'განცხადებების შეტყობინებებისთვის მიუთითეთ Telegram-ის სახელი.',verifyTelegramTitle:'დაადასტურეთ Telegram',verifyTelegramText:'გახსენით @georealt_bot მითითებული მომხმარებლის სახელის მქონე Telegram ანგარიშიდან. ბოტის დადასტურების შემდეგ დაბრუნდით აქ.',openTelegram:'@georealt_bot-ის გახსნა',waitingTelegram:'ველოდებით Telegram-ის დადასტურებას…',telegramVerified:'Telegram დაკავშირებულია. გადახდის ბმული მზადაა.',payInTribute:'Tribute-ზე გადასვლა',paymentProcessing:'გადახდა მიღებულია. Geo Realt-ის წვდომა აქტიურდება…'});
 Object.assign(words.en,{seekTab:'Seek',seekEyebrow:'HOUSING REQUESTS',seekTitle:'Looking for a home',seekIntro:'Posts from people looking for housing. Open the original post to contact the author.',seekSearch:'Search requests',seekPlaceholder:'District, budget, requirements…',seekFind:'Find',seekNoMatches:'No matching requests',seekEmpty:'No housing requests yet',seekEmptyHint:'Matching posts will appear after collection. Property offers and advertising are excluded.',seekLogin:'Sign in to view housing requests.',seekOpenFacebook:'Open on Facebook ↗',seekOpenThreads:'Open on Threads ↗',seekPublished:'Published',seekFound:'Found',seekPending:'First collection is pending',seekRunning:'Checking sources…',seekCollectionError:'Collection needs attention. Previously found requests remain available.',seekCollected:'Last checked',seekTranslated:'Translated by Facebook',seekOriginal:'Original text',seekCount:n=>`${n} ${n===1?'request':'requests'}`,feedTab:'New',searchesTab:'Searches'});
 Object.assign(words.ru,{seekTab:'Ищут',seekEyebrow:'ЗАПРОСЫ НА ЖИЛЬЁ',seekTitle:'Ищут жильё',seekIntro:'Публикации людей, которые ищут жильё. Для связи с автором откройте оригинал.',seekSearch:'Поиск по запросам',seekPlaceholder:'Район, бюджет, пожелания…',seekFind:'Найти',seekNoMatches:'Подходящих запросов нет',seekEmpty:'Запросов на жильё пока нет',seekEmptyHint:'Подходящие публикации появятся после сбора. Предложения сдачи и реклама исключаются.',seekLogin:'Войдите, чтобы увидеть запросы на жильё.',seekOpenFacebook:'Открыть в Facebook ↗',seekOpenThreads:'Открыть в Threads ↗',seekPublished:'Опубликовано',seekFound:'Найдено',seekPending:'Ожидается первый сбор',seekRunning:'Проверяем источники…',seekCollectionError:'Сбор требует проверки. Ранее найденные запросы доступны.',seekCollected:'Последняя проверка',seekTranslated:'Перевод Facebook',seekOriginal:'Оригинал',seekCount:n=>`${n} ${new Intl.PluralRules('ru').select(n)==='one'?'запрос':new Intl.PluralRules('ru').select(n)==='few'?'запроса':'запросов'}`});
 Object.assign(words.ka,{seekTab:'ეძებენ',seekEyebrow:'საცხოვრებლის ძიება',seekTitle:'ეძებენ საცხოვრებელს',seekIntro:'პუბლიკაციები ადამიანებისგან, რომლებიც საცხოვრებელს ეძებენ. ავტორთან დასაკავშირებლად გახსენით ორიგინალი.',seekSearch:'მოთხოვნების ძიება',seekPlaceholder:'უბანი, ბიუჯეტი, სურვილები…',seekFind:'ძებნა',seekNoMatches:'შესაბამისი მოთხოვნები ვერ მოიძებნა',seekEmpty:'მოთხოვნები ჯერ არ არის',seekEmptyHint:'შესაბამისი პუბლიკაციები შეგროვების შემდეგ გამოჩნდება. გაქირავების შეთავაზებები და რეკლამა გამოირიცხება.',seekLogin:'მოთხოვნების სანახავად შედით ანგარიშში.',seekOpenFacebook:'Facebook-ზე გახსნა ↗',seekOpenThreads:'Threads-ზე გახსნა ↗',seekPublished:'გამოქვეყნდა',seekFound:'ნაპოვნია',seekPending:'ველოდებით პირველ შეგროვებას',seekRunning:'წყაროებს ვამოწმებთ…',seekCollectionError:'შეგროვებას შემოწმება სჭირდება. ადრე ნაპოვნი მოთხოვნები ხელმისაწვდომია.',seekCollected:'ბოლო შემოწმება',seekTranslated:'Facebook-ის თარგმანი',seekOriginal:'ორიგინალი',seekCount:n=>`${n} მოთხოვნა`,listingsTab:'ობიექტები',favoritesTab:'რჩეული'});
 let seekItems=[],seekTotal=0,seekLoading=false,seekError=false,seekCollection=null,seekRequestId=0;
 let language=localStorage.getItem('geoLanguage')||'en', token=localStorage.getItem('geoToken')||'', account=JSON.parse(localStorage.getItem('geoAccount')||'null');
+const incomingReferral=new URLSearchParams(location.search).get('ref');
+if(incomingReferral&&/^[A-Za-z0-9_-]{1,100}$/.test(incomingReferral))localStorage.setItem('geoReferralCode',incomingReferral);
 let entryMode=localStorage.getItem('geoEntryMode')||(sessionStorage.getItem('geoGuestEntered')==='1'?'guest':''), workspaceStarted=false;
 let listingsLoading=false;
 let cities=[],cityLoadId=0,cityInitialized=false,citySelection=null;
@@ -616,7 +622,98 @@ document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener
 $('#currency').addEventListener('change',event=>setCurrency(event.target.value));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#entry-language').addEventListener('change',event=>setLanguage(event.target.value));
-$('#entry-guest').addEventListener('click',async()=>{if(token){try{account=await api('/me')}catch{account=null}if(!account||account.managed){token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount')}}enterWorkspace('guest');setLanguage(language);if(token)syncAccount()});
+async function openSubscribe(){
+  tributePollGeneration++;
+  $('#subscribe-details').hidden=false;$('#subscribe-connect-step').hidden=true;$('#subscribe-payment-link').hidden=true;
+  $('#subscribe-submit').disabled=false;$('#subscribe-error').hidden=true;
+  let pending=null;
+  try{pending=JSON.parse(localStorage.getItem('geoTributeCheckout')||'null')}catch{localStorage.removeItem('geoTributeCheckout')}
+  if(pending?.id&&pending?.key){
+    $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
+    $('#subscribe-telegram-link').href=pending.telegramUrl||'https://t.me/georealt_bot';
+    $('#subscribe-step-message').textContent=tr('waitingTelegram');
+    $('#subscribe-dialog').showModal();watchTributeCheckout(pending.id,pending.key);return;
+  }
+  $('#subscribe-plan').innerHTML=`<option value="">${safe(tr('loading'))}</option>`;
+  $('#subscribe-dialog').showModal();
+  try{
+    const response=await api('/billing/tribute/plans');
+    if(!response.available||!response.items?.length){$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=tr('billingUnavailable');$('#subscribe-error').hidden=false;return}
+    $('#subscribe-submit').disabled=false;
+    $('#subscribe-plan').innerHTML=response.items.map(plan=>`<option value="${safe(plan.id)}">${safe(tr('planPeriod',plan.accessMonths))} · ${new Intl.NumberFormat(language,{style:'currency',currency:plan.currency}).format(plan.amountMinor/100)}</option>`).join('');
+  }catch(error){$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=error.message;$('#subscribe-error').hidden=false}
+}
+async function finishTributeCheckout(){
+  const match=location.hash.match(/^#tribute=([0-9a-f-]{36})\.([A-Za-z0-9_-]+)$/i);
+  if(!match)return false;
+  $('#entry-error').textContent=tr('loading');$('#entry-error').hidden=false;
+  const [,checkoutId,checkoutKey]=match;
+  for(let attempt=0;attempt<90;attempt++){
+    try{
+      const result=await api(`/billing/tribute/checkout/${checkoutId}`,{headers:{'X-Checkout-Key':checkoutKey}});
+      if(result.status==='paid'&&result.token&&result.user){
+        const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('ref');cleanUrl.hash='#listings';
+        history.replaceState(null,'',cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);localStorage.removeItem('geoReferralCode');
+        signedIn(result,'managed');
+        $('#telegram-join').href=result.telegramUrl||'https://t.me/georealt_bot';
+        $('#telegram-dialog').showModal();
+        return true;
+      }
+      if(['failed','expired'].includes(result.status))throw Error(tr('paymentFailed'));
+    }catch(error){if(error.status===404||error.status===400){$('#entry-error').textContent=tr('paymentFailed');return true}}
+    await new Promise(resolve=>setTimeout(resolve,2000));
+  }
+  $('#entry-error').textContent=tr('paymentPending');
+  return true;
+}
+async function watchTributeCheckout(checkoutId,checkoutKey){
+  const generation=++tributePollGeneration;
+  const started=Date.now();
+  while(generation===tributePollGeneration&&Date.now()-started<30*60*1000){
+    try{
+      const result=await api(`/billing/tribute/checkout/${checkoutId}`,{headers:{'X-Checkout-Key':checkoutKey}});
+      if(result.status==='paid'&&result.token&&result.user){
+        localStorage.removeItem('geoTributeCheckout');
+        const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('ref');cleanUrl.hash='#listings';
+        history.replaceState(null,'',cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);localStorage.removeItem('geoReferralCode');
+        $('#subscribe-dialog').close();signedIn(result,'managed');
+        $('#telegram-join').href=result.telegramUrl||'https://t.me/georealt_bot';$('#telegram-dialog').showModal();
+        return;
+      }
+      if(['failed','expired'].includes(result.status)){
+        $('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return;
+      }
+      if(result.telegramLinked&&result.paymentUrl){
+        $('#subscribe-step-message').textContent=tr('telegramVerified');
+        $('#subscribe-payment-link').href=result.paymentUrl;$('#subscribe-payment-link').hidden=false;
+      }else{
+        $('#subscribe-step-message').textContent=tr('waitingTelegram');
+        $('#subscribe-payment-link').hidden=true;
+      }
+    }catch(error){
+      if(error.status===404){$('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return}
+    }
+    await new Promise(resolve=>setTimeout(resolve,2500));
+  }
+  if(generation===tributePollGeneration){$('#subscribe-error').textContent=tr('paymentPending');$('#subscribe-error').hidden=false}
+}
+$('#entry-subscribe').addEventListener('click',openSubscribe);
+$('#close-subscribe').addEventListener('click',()=>$('#subscribe-dialog').close());
+$('#close-subscribe').addEventListener('keydown',event=>{if(event.key==='Escape')$('#subscribe-dialog').close()});
+$('#subscribe-form').addEventListener('submit',async event=>{
+  event.preventDefault();const button=$('#subscribe-submit'),error=$('#subscribe-error');button.disabled=true;error.hidden=true;
+  try{
+    const result=await api('/billing/tribute/checkout',{method:'POST',body:JSON.stringify({username:$('#subscribe-username').value.trim(),password:$('#subscribe-password').value,telegramUsername:$('#subscribe-telegram').value.trim(),planId:$('#subscribe-plan').value,referralCode:localStorage.getItem('geoReferralCode')||null})});
+    $('#subscribe-password').value='';
+    localStorage.setItem('geoTributeCheckout',JSON.stringify({id:result.checkoutId,key:result.checkoutKey,telegramUrl:result.telegramUrl}));
+    $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
+    $('#subscribe-telegram-link').href=result.telegramUrl;
+    $('#subscribe-step-message').textContent=tr('waitingTelegram');
+    watchTributeCheckout(result.checkoutId,result.checkoutKey);
+  }catch(problem){error.textContent=problem.message||tr('paymentFailed');error.hidden=false;button.disabled=false}
+});
+$('#subscribe-payment-link').addEventListener('click',()=>{$('#subscribe-step-message').textContent=tr('paymentProcessing')});
+$('#telegram-continue').addEventListener('click',()=>$('#telegram-dialog').close());
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
 document.addEventListener('click',event=>{document.querySelectorAll('.source-dropdown[open]').forEach(dropdown=>{if(!dropdown.contains(event.target))dropdown.open=false})});
@@ -678,6 +775,8 @@ function setupAutoHideHeader(){
 setupAutoHideHeader();
 async function restoreSession(){
   try{
+    if(await finishTributeCheckout())return;
+    if(location.hash==='#subscribe'){history.replaceState(null,'',location.pathname+location.search);showEntry();openSubscribe();return}
     if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}
     else if(entryMode==='managed'&&token){await syncAccount();if(token)enterWorkspace('managed')}
     else showEntry();

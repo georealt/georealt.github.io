@@ -56,6 +56,19 @@ body.entered .entry-screen{display:none}
 .entry-card{width:min(440px,100%);background:#fff;border-radius:22px;padding:32px;box-shadow:0 30px 90px #06131b60}
 .entry-top,.entry-brand{display:flex;align-items:center}.entry-top{justify-content:space-between;margin-bottom:34px}.entry-brand{gap:12px}.entry-brand img{border-radius:13px}.entry-brand strong{font-size:22px;letter-spacing:-.7px}.entry-top select{border:1px solid #dbe1e4;border-radius:8px;background:#fff;padding:9px;color:#283e4c;font-weight:800}
 .entry-card h1{font-size:31px;letter-spacing:-1.2px;line-height:1.12;margin:10px 0}.entry-card>p{color:#707e86;font-size:14px;line-height:1.6;margin:0 0 25px}.entry-form{display:grid;gap:15px}.entry-form label{display:grid;gap:7px;font-size:12px;color:#616f78;font-weight:800}.entry-form input{height:47px;border:1px solid #dce2e6;border-radius:9px;padding:0 13px;font:inherit;outline:none}.entry-form input:focus{border-color:#44708b;box-shadow:0 0 0 3px #e0ebf2}.entry-form .primary-button{height:47px;font-size:14px;margin-top:4px}.entry-guest{display:block;width:100%;margin-top:12px;height:44px;border:1px solid #dbe2e6;border-radius:9px;background:#f8fafb;color:#28475a;font-weight:800}.entry-guest:hover{background:#edf3f6}.entry-error{margin:0;color:#a6382c;font-size:12px;line-height:1.45}
+.billing-dialog{width:min(460px,calc(100vw - 28px));max-width:none;padding:30px;border:1px solid #dce2e6;border-radius:20px;background:#fff;color:#203543;box-shadow:0 24px 80px #081b2b40}
+.billing-dialog::backdrop{background:#0a1b28a8;backdrop-filter:blur(3px)}
+.billing-dialog form,.telegram-success{display:grid;gap:14px}
+.billing-dialog h2{margin:0;font-size:25px;letter-spacing:-.6px}
+.billing-dialog p{margin:0;color:#687780;font-size:14px;line-height:1.5}
+.billing-dialog label{display:grid;gap:6px;color:#586872;font-size:12px;font-weight:800}
+.billing-dialog input,.billing-dialog select{width:100%;min-height:46px;border:1px solid #dce2e6;border-radius:9px;padding:0 12px;background:#fff;color:#203543;font:inherit}
+.billing-dialog input:focus,.billing-dialog select:focus{outline:2px solid #d8e8f0;border-color:#44708b}
+.billing-dialog .primary-button,.billing-dialog .secondary-button{min-height:46px;width:100%;display:grid;place-items:center;text-decoration:none;border-radius:10px;font:inherit;font-weight:800}
+.billing-dialog .secondary-button{border:1px solid #dce2e6;background:#f6f8f9;color:#28475a;margin-top:0}
+.billing-dialog .billing-note{padding:11px 13px;border-left:3px solid #d2a06b;border-radius:4px 9px 9px 4px;background:#faf7f2;color:#59656d;font-size:13px}
+.billing-dialog .dialog-close{position:absolute;top:10px;right:12px}
+@media(max-width:480px){.billing-dialog{padding:26px 21px;border-radius:17px}}
 @media(max-width:480px){.entry-card{padding:26px 22px;border-radius:18px}.entry-card h1{font-size:27px}}
 .photo-close,.photo-step{position:absolute;z-index:1;display:grid;place-items:center;width:42px;height:42px;padding:0;border:0;border-radius:50%;background:#101d25cc;color:#fff;font-size:30px;line-height:1}
 .photo-close{top:12px;right:12px}
