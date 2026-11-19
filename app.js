@@ -622,9 +622,37 @@ document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener
 $('#currency').addEventListener('change',event=>setCurrency(event.target.value));
 $('#language').addEventListener('change',event=>setLanguage(event.target.value));
 $('#entry-language').addEventListener('change',event=>setLanguage(event.target.value));
+Object.assign(words.en,{payInTelegram:'Pay in Telegram',payInBrowser:'Pay in browser'});
+Object.assign(words.ru,{payInTelegram:'Оплатить в Telegram',payInBrowser:'Оплатить в браузере'});
+Object.assign(words.ka,{payInTelegram:'გადახდა Telegram-ში',payInBrowser:'გადახდა ბრაუზერში'});
+
+function showTributePaymentLinks(paymentUrl){
+  const browserLink=$('#subscribe-payment-link');
+  const telegramLink=$('#subscribe-telegram-payment-link');
+  browserLink.hidden=true;
+  telegramLink.hidden=true;
+  if(!paymentUrl)return;
+  const url=new URL(paymentUrl);
+  if(url.protocol!=='https:')return;
+  if(['t.me','telegram.me'].includes(url.hostname)){
+    telegramLink.href=url.href;
+    telegramLink.hidden=false;
+    return;
+  }
+  if(url.hostname!=='web.tribute.tg')return;
+  const productCode=url.pathname.match(/^\/p\/([A-Za-z0-9]+)\/?$/)?.[1];
+  if(productCode){
+    telegramLink.href='https://t.me/tribute/app?startapp=p'+productCode;
+    telegramLink.hidden=false;
+  }
+  browserLink.href=url.href;
+  browserLink.hidden=false;
+}
+
 async function openSubscribe(){
   tributePollGeneration++;
-  $('#subscribe-details').hidden=false;$('#subscribe-connect-step').hidden=true;$('#subscribe-payment-link').hidden=true;
+  $('#subscribe-telegram-link').hidden=false;
+  $('#subscribe-details').hidden=false;$('#subscribe-connect-step').hidden=true;showTributePaymentLinks();
   $('#subscribe-submit').disabled=false;$('#subscribe-error').hidden=true;
   let pending=null;
   try{pending=JSON.parse(localStorage.getItem('geoTributeCheckout')||'null')}catch{localStorage.removeItem('geoTributeCheckout')}
@@ -684,11 +712,13 @@ async function watchTributeCheckout(checkoutId,checkoutKey){
         $('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return;
       }
       if(result.telegramLinked&&result.paymentUrl){
+        $('#subscribe-telegram-link').hidden=true;
         $('#subscribe-step-message').textContent=tr('telegramVerified');
-        $('#subscribe-payment-link').href=result.paymentUrl;$('#subscribe-payment-link').hidden=false;
+        showTributePaymentLinks(result.paymentUrl);
       }else{
+        $('#subscribe-telegram-link').hidden=false;
         $('#subscribe-step-message').textContent=tr('waitingTelegram');
-        $('#subscribe-payment-link').hidden=true;
+        showTributePaymentLinks();
       }
     }catch(error){
       if(error.status===404){$('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return}
@@ -712,7 +742,9 @@ $('#subscribe-form').addEventListener('submit',async event=>{
     watchTributeCheckout(result.checkoutId,result.checkoutKey);
   }catch(problem){error.textContent=problem.message==='Username is already taken'?tr('usernameTaken'):(problem.message||tr('paymentFailed'));error.hidden=false;button.disabled=false}
 });
-$('#subscribe-payment-link').addEventListener('click',()=>{$('#subscribe-step-message').textContent=tr('paymentProcessing')});
+for(const id of ['#subscribe-payment-link','#subscribe-telegram-payment-link']){
+  $(id).addEventListener('click',()=>{$('#subscribe-step-message').textContent=tr('paymentProcessing')});
+}
 $('#telegram-continue').addEventListener('click',()=>$('#telegram-dialog').close());
 $('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
