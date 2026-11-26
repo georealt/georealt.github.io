@@ -754,7 +754,7 @@ async function openSubscribe(renewal=false,ignoreSaved=false){
     $('#subscribe-'+field+'-field').hidden=renewal;
     $('#subscribe-'+field).disabled=renewal;
   }
-  $('#subscribe-telegram').value=renewal?(account.telegramUsername||''):'';
+  $('#subscribe-telegram').value=renewal?(account.telegramUsername||'').replace(/^@+/,''):'';
   $('#subscribe-title').dataset.i18n=renewal?'renewSubscription':'registrationTitle';
   $('#subscribe-intro').dataset.i18n=renewal?'renewIntro':'subscribeIntro';
   $('#subscribe-intro').hidden=false;
@@ -851,6 +851,11 @@ $('#entry-subscribe').addEventListener('click',()=>{
   openSubscribe(false,true);
 });
 $('#subscribe-resume').addEventListener('click',()=>openSubscribe());
+$('#subscribe-telegram').addEventListener('input',event=>{
+  const input=event.target,start=input.selectionStart;
+  const prefix=input.value.match(/^@+/)?.[0].length||0;
+  if(prefix){input.value=input.value.slice(prefix);if(start!==null)input.setSelectionRange(Math.max(0,start-prefix),Math.max(0,start-prefix))}
+});
 $('#entry-renew').addEventListener('click',()=>openSubscribe(true));
 $('#account-renew').addEventListener('click',()=>{$('#account-dialog').close();openSubscribe(true)});
 $('#close-account').addEventListener('click',()=>$('#account-dialog').close());

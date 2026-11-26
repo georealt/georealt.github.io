@@ -106,7 +106,7 @@
         <button id="subscribe-resume" class="secondary-button" type="button" data-i18n="resumePayment" hidden>Continue payment</button>
         <label id="subscribe-username-field"><span data-i18n="username">Username</span><input id="subscribe-username" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+"></label>
         <label id="subscribe-password-field"><span data-i18n="password">Password</span><input id="subscribe-password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="128"></label>
-        <label><span data-i18n="telegramHandle">Telegram username</span><input id="subscribe-telegram" name="telegramUsername" autocomplete="off" placeholder="@username" required minlength="5" maxlength="33"></label>
+        <label><span data-i18n="telegramHandle">Telegram username</span><span class="telegram-username-field"><span aria-hidden="true">@</span><input id="subscribe-telegram" name="telegramUsername" autocomplete="off" placeholder="username" required minlength="5" maxlength="32"></span></label>
         <label><span data-i18n="accessPlan">Access period</span><select id="subscribe-plan" name="planId" required><option value="" data-i18n="loading">Loading…</option></select></label>
         <p class="billing-note" data-i18n="customTeamTerms"></p>
         <button id="subscribe-submit" class="primary-button" type="submit" data-i18n="continueToPayment">Continue</button>
@@ -131,6 +131,6 @@
     <button id="photo-next" class="photo-step photo-next" type="button" aria-label="Next photo">›</button>
     <div id="photo-count" class="photo-count"></div>
   </dialog>
-  <script src="./app.js?v=20261126-checkout-recovery" defer onerror="document.documentElement.classList.remove('session-restoring')"></script>
+  <script src="./app.js?v=20261126-telegram-username" defer onerror="document.documentElement.classList.remove('session-restoring')"></script>
 </body>
 </html>
