@@ -664,6 +664,7 @@ Object.assign(words.en,{
   telegramPaidTitle:'Telegram is ready',telegramPaidText:'Payment confirmed. New listings will appear in @georealt_bot.',
   openListingBot:'Open listing bot',renewalPaid:'Payment confirmed. Your subscription has been renewed.',
   resumePayment:'Continue payment',signInAnother:'Sign in with another account',
+  checkoutInProgress:'An order already exists for this username. Continue the saved payment or use the same password, Telegram username, and plan. If you confirmed Telegram for that order, you can cancel it in @georealt_bot.',
   registrationTitle:'Create an agency account',paymentStep:'Payment',
 });
 Object.assign(words.ru,{
@@ -674,6 +675,7 @@ Object.assign(words.ru,{
   telegramPaidTitle:'Telegram подключён',telegramPaidText:'Оплата подтверждена. Новые объявления будут приходить в @georealt_bot.',
   openListingBot:'Открыть бот с объявлениями',renewalPaid:'Оплата подтверждена. Подписка продлена.',
   resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',
+  checkoutInProgress:'Для этого логина уже есть заказ. Продолжите сохранённую оплату или укажите прежний пароль, Telegram и тариф. Если Telegram уже подтверждён, отменить заказ можно в @georealt_bot.',
   registrationTitle:'Регистрация агентства',paymentStep:'Оплата',
 });
 Object.assign(words.ka,{
@@ -684,6 +686,7 @@ Object.assign(words.ka,{
   telegramPaidTitle:'Telegram დაკავშირებულია',telegramPaidText:'გადახდა დადასტურებულია. ახალ განცხადებებს @georealt_bot-ში მიიღებთ.',
   openListingBot:'განცხადებების ბოტის გახსნა',renewalPaid:'გადახდა დადასტურებულია. გამოწერა გაგრძელდა.',
   resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',
+  checkoutInProgress:'ამ მომხმარებლის სახელით შეკვეთა უკვე არსებობს. განაგრძეთ გადახდა ან მიუთითეთ იგივე პაროლი, Telegram-ის სახელი და ტარიფი. თუ Telegram დადასტურებულია, შეკვეთის გაუქმება შეგიძლიათ @georealt_bot-ში.',
   registrationTitle:'სააგენტოს რეგისტრაცია',paymentStep:'გადახდა',
 });
 
@@ -874,9 +877,15 @@ $('#subscribe-form').addEventListener('submit',async event=>{
     renderSubscription();
     if(generation!==tributePollGeneration)return;
     $('#subscribe-password').value='';
-    showPendingTributeCheckout(result,renewal);
+    showPendingTributeCheckout(result,renewal,Boolean(result.resumed));
     watchTributeCheckout(result.checkoutId,result.checkoutKey,storageKey,renewal);
-  }catch(problem){if(generation!==tributePollGeneration)return;error.textContent=problem.message==='Username is already taken'?tr('usernameTaken'):(problem.message||tr('paymentFailed'));error.hidden=false;button.disabled=false}
+  }catch(problem){
+    if(generation!==tributePollGeneration)return;
+    if(problem.message==='Username is already taken')error.textContent=tr('usernameTaken');
+    else if(problem.message==='A checkout for this username is already in progress')error.textContent=tr('checkoutInProgress');
+    else error.textContent=problem.message||tr('paymentFailed');
+    error.hidden=false;button.disabled=false;
+  }
 });
 for(const id of ['#subscribe-payment-link','#subscribe-telegram-payment-link']){
   $(id).addEventListener('click',()=>{$('#subscribe-step-message').textContent=tr('paymentProcessing')});
