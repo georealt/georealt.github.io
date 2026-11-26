@@ -244,7 +244,7 @@ async function loadCities(){
     }
   }
 }
-function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));$('#account-button').textContent=account?tr('signOut'):tr('signIn');$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();renderFavorites();renderFavoriteButtons();renderSeek();if(account&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
+function setLanguage(value){language=words[value]?value:'en';localStorage.setItem('geoLanguage',language);document.documentElement.lang=language;$('#language').value=language;$('#entry-language').value=language;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=tr(el.dataset.i18n));document.querySelectorAll('[data-placeholder]').forEach(el=>el.placeholder=tr(el.dataset.placeholder));syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value));renderSubscription();$('#admin-link').hidden=!(account?.isAdmin||account?.isManager);$('#admin-link').textContent=account?.isManager&&!account?.isAdmin?tr('teamManagement'):tr('admin');updateCurrencyUI();syncPriceRange();syncBedroomsRange();syncRoomsRange();loadCities();renderListings();renderFeed();renderSearches();renderFeedSearchFilter();renderFavorites();renderFavoriteButtons();renderSeek();if(account&&!account.accessExpired&&account.language!==language)api('/me/language',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{})}
 function scrollToRefineResults(){requestAnimationFrame(()=>{const target=$('.filter-card .section-head'),header=$('.topbar');if(!target)return;const offset=(header?.getBoundingClientRect().height||0)+12;window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-offset,behavior:'smooth'});});}
 function navigate(next){view=next;$('#hero-browse').hidden=next!=='listings';for(const name of ['listings','feed','favorites','seek','searches']){$('#'+name+'-view').hidden=name!==next;document.querySelector(`[data-view="${name}"]`).classList.toggle('active',name===next)}location.hash=next;if(next==='listings')scrollToRefineResults();if(next==='feed'){loadSearches().then(()=>loadFeed())}if(next==='searches')loadSearches();if(next==='seek'){loadSeek();requestAnimationFrame(()=>$('#seek-view').scrollIntoView({behavior:'smooth',block:'start'}))}if(next==='favorites'){loadFavorites();requestAnimationFrame(()=>{const target=$('#favorites-view .results-head');window.scrollTo({top:window.scrollY+target.getBoundingClientRect().top-($('.topbar')?.getBoundingClientRect().height||0)-12,behavior:'smooth'})})}}
 Object.assign(words.en,{minFloor:'Floor from',maxFloor:'Floor to'});
@@ -575,10 +575,40 @@ async function loadSearches(){
 function renderSearches(){if(!$('#searches-list'))return;$('#searches-list').innerHTML=searches.length?searches.map(s=>`<article class="search-item"><div class="search-description"><h3>${safe(s.name)}</h3><p>${safe([s.sources?.length?s.sources.join(', '):s.source||tr('allSources'),s.operation?tr(s.operation==='RENT'?'rent':'buy'):tr('any'),s.propertyType?tr({HOUSE:'house',APARTMENT:'apartment',COMMERCIAL:'commercial'}[s.propertyType]):'',s.advertiserType?tr({OWNER:'owner',AGENT:'realtorFilter',UNKNOWN:'unknownAdvertiser'}[s.advertiserType]):'',s.city?cityLabel(s.city):'',s.districts?.length?s.districts.map(value=>districtLabel(value,s.city,s.districtsNames?.[value])).join(', '):s.district?districtLabel(s.district,s.city,s.districtNames):'',s.minRooms!=null?tr('minRooms')+' '+s.minRooms:'',s.maxRooms!=null?tr('maxRooms')+' '+s.maxRooms:'',s.minBedrooms!=null?tr('bedrooms')+' '+s.minBedrooms:'',s.maxBedrooms!=null?tr('maxBedrooms')+' '+s.maxBedrooms:'',s.minFloor!=null?tr('minFloor')+' '+s.minFloor:'',s.maxFloor!=null?tr('maxFloor')+' '+s.maxFloor:'',s.commercialType?tr(s.commercialType):'',s.minAreaM2!=null?'≥ '+s.minAreaM2+' '+tr('area'):'',s.maxAreaM2!=null?'≤ '+s.maxAreaM2+' '+tr('area'):'',s.minPriceUsd!=null||s.minPriceGel!=null?'≥ '+money(s.minPriceUsd,s.minPriceGel):'',s.maxPriceUsd!=null||s.maxPriceGel!=null?'≤ '+money(s.maxPriceUsd,s.maxPriceGel):''].filter(Boolean).join(' · '))}</p></div><div class="search-actions"><button data-show-search="${s.id}">${safe(tr('showSearchResults'))}</button><button data-toggle="${s.id}">${safe(tr(s.enabled?'disable':'enable'))}</button><button data-delete="${s.id}">${safe(tr('remove'))}</button></div></article>`).join(''):`<div class="empty"><strong>${safe(tr('noSearches'))}</strong>${safe(tr(token?'searchEmpty':'loginFirst'))}</div>`}
 function openAuth(){$('#auth-dialog').showModal();setLanguage(language)}
 function enterWorkspace(mode){entryMode=mode;if(mode==='managed'){localStorage.setItem('geoEntryMode','managed');sessionStorage.removeItem('geoGuestEntered')}else{localStorage.removeItem('geoEntryMode');sessionStorage.setItem('geoGuestEntered','1')}document.body.classList.add('entered');if(workspaceStarted)return;workspaceStarted=true;loadExchangeRate(true);if(cityInitialized)loadListings();if(['#feed','#favorites','#seek','#searches'].includes(location.hash))navigate(location.hash.slice(1));if(account){if(view!=='feed')loadFeed();loadSearches()}}
-function showEntry(){resetFavorites();entryMode='';localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
+function showEntry(){resetFavorites();entryMode='';workspaceStarted=false;localStorage.removeItem('geoEntryMode');sessionStorage.removeItem('geoGuestEntered');document.body.classList.remove('entered');feed=[];searches=[];renderFeed();renderSearches();$('#entry-error').hidden=true;$('#entry-password').value=''}
 function accessError(error){return /expired/i.test(error.message)?tr('accessExpired'):/not started/i.test(error.message)?tr('accessNotStarted'):/paused/i.test(error.message)?tr('accessPaused'):/invalid/i.test(error.message)?tr('invalidCredentials'):error.message}
-async function syncAccount(){if(!token)return;try{account=await api('/me');localStorage.setItem('geoAccount',JSON.stringify(account));setLanguage(language);loadFavoriteIds()}catch(error){if(![401,403].includes(error.status)){showStatus(error.message,true);return}token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}setLanguage(language)}}
-function signedIn(result,mode='guest'){resetFavorites();token=result.token;account=result.user;localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));if($('#auth-dialog').open)$('#auth-dialog').close();enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();if(view==='favorites')loadFavorites();if(view==='seek')loadSeek();refreshPushState()}
+function showRenewalEntry(){
+  if(entryMode!=='managed'||document.body.classList.contains('entered'))showEntry();
+  entryMode='managed';localStorage.setItem('geoEntryMode','managed');
+  const error=$('#entry-error');error.textContent=tr('accessExpired');error.hidden=false;
+}
+async function syncAccount(){
+  if(!token)return;
+  const sessionToken=token;
+  try{
+    const refreshed=await api('/me');
+    if(token!==sessionToken)return;
+    account=refreshed;
+    localStorage.setItem('geoAccount',JSON.stringify(account));
+    if(account.accessExpired)showRenewalEntry();
+    setLanguage(language);
+    if(!account.accessExpired)loadFavoriteIds();
+  }catch(error){
+    if(token!==sessionToken)return;
+    if(![401,403].includes(error.status)){showStatus(error.message,true);return}
+    token='';account=null;resetFavorites();localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');feed=[];searches=[];
+    if(entryMode==='managed'){showEntry();const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}
+    setLanguage(language);
+  }
+}
+function signedIn(result,mode='guest'){
+  resetFavorites();token=result.token;account=result.user;
+  localStorage.setItem('geoToken',token);localStorage.setItem('geoAccount',JSON.stringify(account));
+  if($('#auth-dialog').open)$('#auth-dialog').close();
+  if(account.accessExpired){showRenewalEntry();renderSubscription();syncAccount();return}
+  enterWorkspace(mode);setLanguage(language);syncAccount();loadFeed();loadSearches();
+  if(view==='favorites')loadFavorites();if(view==='seek')loadSeek();refreshPushState();
+}
 function showPushControls(subscribed){
   $('#enable-push').hidden=subscribed;
   $('#test-push').hidden=!subscribed;
@@ -626,50 +656,114 @@ Object.assign(words.en,{payInTelegram:'Pay in Telegram',payInBrowser:'Pay in bro
 Object.assign(words.ru,{payInTelegram:'Оплатить в Telegram',payInBrowser:'Оплатить в браузере'});
 Object.assign(words.ka,{payInTelegram:'გადახდა Telegram-ში',payInBrowser:'გადახდა ბრაუზერში'});
 
-function showTributePaymentLinks(paymentUrl){
+Object.assign(words.en,{
+  subscriptionTitle:'Subscription',renewSubscription:'Renew subscription',subscriptionUntil:'Access through',
+  noExpiry:'Unlimited access',renewIntro:'Choose how long to extend access for your agency. This is a one-time payment.',
+  verifyTelegramText:'Open @georealt_bot from the Telegram account you entered. The payment button will appear in the chat.',
+  telegramVerified:'Buyer verified. Pay here or in @georealt_bot using the same Telegram account. Listing alerts start after payment.',
+  telegramPaidTitle:'Telegram is ready',telegramPaidText:'Payment confirmed. New listings will appear in @georealt_bot.',
+  openListingBot:'Open listing bot',renewalPaid:'Payment confirmed. Your subscription has been renewed.',
+  resumePayment:'Continue payment',signInAnother:'Sign in with another account',
+});
+Object.assign(words.ru,{
+  subscriptionTitle:'Подписка',renewSubscription:'Продлить подписку',subscriptionUntil:'Доступ до',
+  noExpiry:'Бессрочный доступ',renewIntro:'Выберите, на сколько продлить доступ агентству. Оплата разовая.',
+  verifyTelegramText:'Откройте @georealt_bot из указанного аккаунта Telegram. Кнопка оплаты появится в чате.',
+  telegramVerified:'Покупатель подтверждён. При оплате здесь или в @georealt_bot используйте тот же аккаунт Telegram. Рассылка включится после оплаты.',
+  telegramPaidTitle:'Telegram подключён',telegramPaidText:'Оплата подтверждена. Новые объявления будут приходить в @georealt_bot.',
+  openListingBot:'Открыть бот с объявлениями',renewalPaid:'Оплата подтверждена. Подписка продлена.',
+  resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',
+});
+Object.assign(words.ka,{
+  subscriptionTitle:'გამოწერა',renewSubscription:'გამოწერის გაგრძელება',subscriptionUntil:'წვდომა მოქმედებს თარიღამდე:',
+  noExpiry:'უვადო წვდომა',renewIntro:'აირჩიეთ სააგენტოსთვის წვდომის გაგრძელების ვადა. გადახდა ერთჯერადია.',
+  verifyTelegramText:'გახსენით @georealt_bot მითითებული Telegram-ის ანგარიშიდან. გადახდის ღილაკი ჩატში გამოჩნდება.',
+  telegramVerified:'მყიდველი დადასტურებულია. აქ ან @georealt_bot-ში გადახდისას გამოიყენეთ იგივე Telegram-ის ანგარიში. განცხადებების მიღება გადახდის შემდეგ დაიწყება.',
+  telegramPaidTitle:'Telegram დაკავშირებულია',telegramPaidText:'გადახდა დადასტურებულია. ახალ განცხადებებს @georealt_bot-ში მიიღებთ.',
+  openListingBot:'განცხადებების ბოტის გახსნა',renewalPaid:'გადახდა დადასტურებულია. გამოწერა გაგრძელდა.',
+  resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',
+});
+
+function renderSubscription(){
+  const manager=Boolean(account?.isManager);
+  $('#account-button').textContent=tr(manager?'subscriptionTitle':account?'signOut':'signIn');
+  $('#entry-renew').hidden=!(manager&&account.accessExpired);
+  const subscribe=$('#entry-subscribe');
+  subscribe.hidden=manager&&account.accessExpired;
+  subscribe.textContent=tr(savedTributeCheckout(tributeStorageKey(false))?'resumePayment':'subscribe');
+  $('#account-renew').hidden=!manager||account.expiresAt==='9999-12-31';
+  const expiry=account?.expiresAt;
+  $('#account-access-date').textContent=expiry==='9999-12-31'?tr('noExpiry'):
+    expiry?tr('subscriptionUntil')+' '+new Intl.DateTimeFormat(language,{dateStyle:'medium',timeZone:'UTC'}).format(new Date(expiry)):'';
+}
+
+function showTributePaymentLinks(paymentUrl,telegramPaymentUrl){
   const browserLink=$('#subscribe-payment-link');
   const telegramLink=$('#subscribe-telegram-payment-link');
   browserLink.hidden=true;
   telegramLink.hidden=true;
-  if(!paymentUrl)return;
-  const url=new URL(paymentUrl);
-  if(url.protocol!=='https:')return;
-  if(['t.me','telegram.me'].includes(url.hostname)){
-    telegramLink.href=url.href;
-    telegramLink.hidden=false;
-    return;
+  for(const candidate of [paymentUrl,telegramPaymentUrl]){
+    if(!candidate)continue;
+    const url=new URL(candidate);
+    if(url.protocol!=='https:')continue;
+    if(['t.me','telegram.me'].includes(url.hostname)){
+      telegramLink.href=url.href;telegramLink.hidden=false;
+    }else if(url.hostname==='web.tribute.tg'){
+      browserLink.href=url.href;browserLink.hidden=false;
+    }
   }
-  if(url.hostname!=='web.tribute.tg')return;
-  const productCode=url.pathname.match(/^\/p\/([A-Za-z0-9]+)\/?$/)?.[1];
-  if(productCode){
-    telegramLink.href='https://t.me/tribute/app?startapp=p'+productCode;
-    telegramLink.hidden=false;
-  }
-  browserLink.href=url.href;
-  browserLink.hidden=false;
 }
 
-async function openSubscribe(){
+let renewalCheckout=false;
+function tributeStorageKey(renewal){return renewal?'geoTributeRenewal:'+account.id:'geoTributeCheckout'}
+function savedTributeCheckout(storageKey){
+  try{
+    const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
+    return saved?.id&&saved?.key?saved:null;
+  }catch{return null}
+}
+function showPendingTributeCheckout(pending,renewal){
+  $('#subscribe-title').dataset.i18n='resumePayment';
+  $('#subscribe-title').textContent=tr('resumePayment');
+  $('#subscribe-intro').hidden=true;
+  $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
+  $('#subscribe-switch-account').hidden=renewal;
+  $('#subscribe-telegram-link').href=pending.telegramUrl||'https://t.me/georealt_bot';
+  $('#subscribe-step-message').textContent=tr('waitingTelegram');
+}
+async function openSubscribe(renewal=false,ignoreSaved=false){
+  if(renewal&&(!token||!account?.isManager))return;
+  renewalCheckout=renewal;
+  const storageKey=tributeStorageKey(renewal);
   tributePollGeneration++;
+  const generation=tributePollGeneration;
+  for(const field of ['username','password']){
+    $('#subscribe-'+field+'-field').hidden=renewal;
+    $('#subscribe-'+field).disabled=renewal;
+  }
+  $('#subscribe-telegram').value=renewal?(account.telegramUsername||''):'';
+  $('#subscribe-title').dataset.i18n=renewal?'renewSubscription':'subscribeTitle';
+  $('#subscribe-intro').dataset.i18n=renewal?'renewIntro':'subscribeIntro';
+  $('#subscribe-intro').hidden=false;
+  for(const el of [$('#subscribe-title'),$('#subscribe-intro')])el.textContent=tr(el.dataset.i18n);
   $('#subscribe-telegram-link').hidden=false;
   $('#subscribe-details').hidden=false;$('#subscribe-connect-step').hidden=true;showTributePaymentLinks();
   $('#subscribe-submit').disabled=false;$('#subscribe-error').hidden=true;
-  let pending=null;
-  try{pending=JSON.parse(localStorage.getItem('geoTributeCheckout')||'null')}catch{localStorage.removeItem('geoTributeCheckout')}
-  if(pending?.id&&pending?.key){
-    $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
-    $('#subscribe-telegram-link').href=pending.telegramUrl||'https://t.me/georealt_bot';
-    $('#subscribe-step-message').textContent=tr('waitingTelegram');
-    $('#subscribe-dialog').showModal();watchTributeCheckout(pending.id,pending.key);return;
+  const pending=ignoreSaved?null:savedTributeCheckout(storageKey);
+  if(pending){
+    showPendingTributeCheckout(pending,renewal);
+    if(!$('#subscribe-dialog').open)$('#subscribe-dialog').showModal();
+    watchTributeCheckout(pending.id,pending.key,storageKey,renewal);return;
   }
   $('#subscribe-plan').innerHTML=`<option value="">${safe(tr('loading'))}</option>`;
-  $('#subscribe-dialog').showModal();
+  if(!$('#subscribe-dialog').open)$('#subscribe-dialog').showModal();
   try{
     const response=await api('/billing/tribute/plans');
+    if(generation!==tributePollGeneration)return;
     if(!response.available||!response.items?.length){$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=tr('billingUnavailable');$('#subscribe-error').hidden=false;return}
     $('#subscribe-submit').disabled=false;
     $('#subscribe-plan').innerHTML=response.items.map(plan=>`<option value="${safe(plan.id)}">${safe(tr('planPeriod',plan.accessMonths))} · ${new Intl.NumberFormat(language,{style:'currency',currency:plan.currency}).format(plan.amountMinor/100)}</option>`).join('');
-  }catch(error){$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=error.message;$('#subscribe-error').hidden=false}
+  }catch(error){if(generation!==tributePollGeneration)return;$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=error.message;$('#subscribe-error').hidden=false}
 }
 async function finishTributeCheckout(){
   const match=location.hash.match(/^#tribute=([0-9a-f-]{36})\.([A-Za-z0-9_-]+)$/i);
@@ -680,73 +774,99 @@ async function finishTributeCheckout(){
     try{
       const result=await api(`/billing/tribute/checkout/${checkoutId}`,{headers:{'X-Checkout-Key':checkoutKey}});
       if(result.status==='paid'&&result.token&&result.user){
-        const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('ref');cleanUrl.hash='#listings';
-        history.replaceState(null,'',cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);localStorage.removeItem('geoReferralCode');
-        signedIn(result,'managed');
-        $('#telegram-join').href=result.telegramUrl||'https://t.me/georealt_bot';
-        $('#telegram-dialog').showModal();
+        showPaidRegistration(result);
         return true;
       }
-      if(['failed','expired'].includes(result.status))throw Error(tr('paymentFailed'));
+      if(['failed','expired'].includes(result.status)){$('#entry-error').textContent=tr('paymentFailed');return true}
     }catch(error){if(error.status===404||error.status===400){$('#entry-error').textContent=tr('paymentFailed');return true}}
     await new Promise(resolve=>setTimeout(resolve,2000));
   }
   $('#entry-error').textContent=tr('paymentPending');
   return true;
 }
-async function watchTributeCheckout(checkoutId,checkoutKey){
+function showPaidRegistration(result){
+  const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('ref');cleanUrl.hash='#listings';
+  history.replaceState(null,'',cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);localStorage.removeItem('geoReferralCode');
+  const title=$('#telegram-dialog h2'),intro=$('#telegram-dialog p'),link=$('#telegram-join');
+  title.dataset.i18n=result.telegramSubscribed?'telegramPaidTitle':'connectTelegramTitle';
+  intro.dataset.i18n=result.telegramSubscribed?'telegramPaidText':'connectTelegramIntro';
+  link.dataset.i18n=result.telegramSubscribed?'openListingBot':'joinTelegram';
+  link.href=result.telegramUrl||'https://t.me/georealt_bot';
+  signedIn(result,'managed');$('#telegram-dialog').showModal();
+}
+async function watchTributeCheckout(checkoutId,checkoutKey,storageKey,renewal){
   const generation=++tributePollGeneration;
+  const ownerId=renewal?account.id:null;
   const started=Date.now();
   while(generation===tributePollGeneration&&Date.now()-started<30*60*1000){
     try{
       const result=await api(`/billing/tribute/checkout/${checkoutId}`,{headers:{'X-Checkout-Key':checkoutKey}});
-      if(result.status==='paid'&&result.token&&result.user){
-        localStorage.removeItem('geoTributeCheckout');
-        const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('ref');cleanUrl.hash='#listings';
-        history.replaceState(null,'',cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);localStorage.removeItem('geoReferralCode');
-        $('#subscribe-dialog').close();signedIn(result,'managed');
-        $('#telegram-join').href=result.telegramUrl||'https://t.me/georealt_bot';$('#telegram-dialog').showModal();
+      if(generation!==tributePollGeneration||(ownerId&&account?.id!==ownerId))return;
+      if(result.status==='paid'&&(renewal?result.renewal:result.token&&result.user)){
+        localStorage.removeItem(storageKey);
+        $('#subscribe-dialog').close();
+        if(renewal){
+          await syncAccount();
+          if(account?.id===ownerId&&!account.accessExpired){
+            enterWorkspace('managed');showStatus(tr('renewalPaid'));
+          }
+        }else showPaidRegistration(result);
         return;
       }
       if(['failed','expired'].includes(result.status)){
-        $('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return;
+        localStorage.removeItem(storageKey);renderSubscription();openSubscribe(renewal,true);return;
       }
-      if(result.telegramLinked&&result.paymentUrl){
-        $('#subscribe-telegram-link').hidden=true;
+      if((result.telegramVerified??result.telegramLinked)&&(result.paymentUrl||result.telegramPaymentUrl)){
         $('#subscribe-step-message').textContent=tr('telegramVerified');
-        showTributePaymentLinks(result.paymentUrl);
+        showTributePaymentLinks(result.paymentUrl,result.telegramPaymentUrl);
       }else{
         $('#subscribe-telegram-link').hidden=false;
         $('#subscribe-step-message').textContent=tr('waitingTelegram');
         showTributePaymentLinks();
       }
     }catch(error){
-      if(error.status===404){$('#subscribe-error').textContent=tr('paymentFailed');$('#subscribe-error').hidden=false;return}
+      if(generation!==tributePollGeneration)return;
+      if(error.status===404){localStorage.removeItem(storageKey);renderSubscription();openSubscribe(renewal,true);return}
     }
     await new Promise(resolve=>setTimeout(resolve,2500));
   }
   if(generation===tributePollGeneration){$('#subscribe-error').textContent=tr('paymentPending');$('#subscribe-error').hidden=false}
 }
-$('#entry-subscribe').addEventListener('click',openSubscribe);
+$('#entry-subscribe').addEventListener('click',()=>openSubscribe());
+$('#entry-renew').addEventListener('click',()=>openSubscribe(true));
+$('#account-renew').addEventListener('click',()=>{$('#account-dialog').close();openSubscribe(true)});
+$('#close-account').addEventListener('click',()=>$('#account-dialog').close());
 $('#close-subscribe').addEventListener('click',()=>$('#subscribe-dialog').close());
-$('#close-subscribe').addEventListener('keydown',event=>{if(event.key==='Escape')$('#subscribe-dialog').close()});
+$('#subscribe-dialog').addEventListener('close',()=>{if(!$('#subscribe-dialog').open)tributePollGeneration++});
+$('#subscribe-switch-account').addEventListener('click',()=>{
+  tributePollGeneration++;
+  $('#subscribe-dialog').close();
+  for(const id of ['#entry-username','#entry-password','#auth-username','#auth-password'])$(id).value='';
+  $('#entry-error').hidden=true;
+  if(document.body.classList.contains('entered')){
+    openAuth();$('#auth-username').focus();
+  }else $('#entry-username').focus();
+});
 $('#subscribe-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#subscribe-submit'),error=$('#subscribe-error');button.disabled=true;error.hidden=true;
+  const renewal=renewalCheckout,storageKey=tributeStorageKey(renewal),generation=tributePollGeneration;
+  const data={telegramUsername:$('#subscribe-telegram').value.trim(),planId:$('#subscribe-plan').value};
+  if(!renewal)Object.assign(data,{username:$('#subscribe-username').value.trim(),password:$('#subscribe-password').value,referralCode:localStorage.getItem('geoReferralCode')||null});
   try{
-    const result=await api('/billing/tribute/checkout',{method:'POST',body:JSON.stringify({username:$('#subscribe-username').value.trim(),password:$('#subscribe-password').value,telegramUsername:$('#subscribe-telegram').value.trim(),planId:$('#subscribe-plan').value,referralCode:localStorage.getItem('geoReferralCode')||null})});
+    const result=await api(renewal?'/billing/tribute/renew':'/billing/tribute/checkout',{method:'POST',body:JSON.stringify(data)});
+    localStorage.setItem(storageKey,JSON.stringify({id:result.checkoutId,key:result.checkoutKey,telegramUrl:result.telegramUrl}));
+    renderSubscription();
+    if(generation!==tributePollGeneration)return;
     $('#subscribe-password').value='';
-    localStorage.setItem('geoTributeCheckout',JSON.stringify({id:result.checkoutId,key:result.checkoutKey,telegramUrl:result.telegramUrl}));
-    $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
-    $('#subscribe-telegram-link').href=result.telegramUrl;
-    $('#subscribe-step-message').textContent=tr('waitingTelegram');
-    watchTributeCheckout(result.checkoutId,result.checkoutKey);
-  }catch(problem){error.textContent=problem.message==='Username is already taken'?tr('usernameTaken'):(problem.message||tr('paymentFailed'));error.hidden=false;button.disabled=false}
+    showPendingTributeCheckout(result,renewal);
+    watchTributeCheckout(result.checkoutId,result.checkoutKey,storageKey,renewal);
+  }catch(problem){if(generation!==tributePollGeneration)return;error.textContent=problem.message==='Username is already taken'?tr('usernameTaken'):(problem.message||tr('paymentFailed'));error.hidden=false;button.disabled=false}
 });
 for(const id of ['#subscribe-payment-link','#subscribe-telegram-payment-link']){
   $(id).addEventListener('click',()=>{$('#subscribe-step-message').textContent=tr('paymentProcessing')});
 }
 $('#telegram-continue').addEventListener('click',()=>$('#telegram-dialog').close());
-$('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
+$('#entry-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#entry-submit');button.disabled=true;$('#entry-error').hidden=true;try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#entry-username').value,password:$('#entry-password').value,allowRenewal:true})});$('#entry-password').value='';signedIn(result,'managed')}catch(error){const node=$('#entry-error');node.textContent=accessError(error);node.hidden=false}finally{button.disabled=false}});
 $('#source-menu').addEventListener('change',event=>{if(event.target.id==='source-all'){syncSources([]);return}if(event.target.matches('input[name="sources"]'))syncSources([...document.querySelectorAll('#filters input[name="sources"]:checked')].map(input=>input.value))});
 document.addEventListener('click',event=>{document.querySelectorAll('.source-dropdown[open]').forEach(dropdown=>{if(!dropdown.contains(event.target))dropdown.open=false})});
 $('#district-dropdown summary').addEventListener('click',event=>{if($('#district-dropdown').dataset.disabled==='true')event.preventDefault()});
@@ -763,9 +883,20 @@ $('#filters').addEventListener('submit',event=>{event.preventDefault();loadListi
 $('#hero-browse').addEventListener('click',scrollToRefineResults);
 $('#load-more').addEventListener('click',()=>loadListings(true));
 $('#save-search').addEventListener('click',async()=>{if(!token){showStatus(tr('loginFirst'),true);openAuth();return}const selected=filters(),number=name=>selected[name]!=null?Number(selected[name]):null;const name=prompt(tr('searchName'),[selected.city,selected.operation].filter(Boolean).join(' · ')||tr('yourSearch'));if(!name)return;try{await api('/searches',{method:'POST',body:JSON.stringify({name,...selected,minPriceUsd:number('minPriceUsd'),maxPriceUsd:number('maxPriceUsd'),minPriceGel:number('minPriceGel'),maxPriceGel:number('maxPriceGel'),minBedrooms:number('minBedrooms'),maxBedrooms:number('maxBedrooms'),minRooms:number('minRooms'),maxRooms:number('maxRooms'),minAreaM2:number('minAreaM2'),maxAreaM2:number('maxAreaM2'),minFloor:number('minFloor'),maxFloor:number('maxFloor')})});showStatus(tr('searchSaved'));loadSearches()}catch(error){showStatus(error.message,true)}});
-$('#account-button').addEventListener('click',async()=>{if(account){const wasManaged=entryMode==='managed';try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}token='';account=null;resetFavorites();feedRequestId++;localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry()}else openAuth()});
+async function signOut(){
+  if($('#account-dialog').open)$('#account-dialog').close();
+  tributePollGeneration++;
+  const wasManaged=entryMode==='managed';
+  try{const registration=await navigator.serviceWorker.getRegistration();const subscription=await registration?.pushManager.getSubscription();const endpoint=subscription?.endpoint||localStorage.getItem('geoPushEndpoint');if(endpoint)await api('/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint})});if(subscription)await subscription.unsubscribe()}catch{}
+  token='';account=null;resetFavorites();feedRequestId++;
+  localStorage.removeItem('geoToken');localStorage.removeItem('geoAccount');localStorage.removeItem('geoPushEndpoint');
+  feed=[];feedTotal=0;feedCounts={NEW:0,SAVED:0,CONTACTED:0,DISMISSED:0};searches=[];
+  setLanguage(language);showPushControls(false);navigate('listings');if(wasManaged)showEntry();
+}
+$('#account-sign-out').addEventListener('click',signOut);
+$('#account-button').addEventListener('click',()=>{if(account?.isManager){renderSubscription();$('#account-dialog').showModal()}else if(account)signOut();else openAuth()});
 $('#close-auth').addEventListener('click',()=>$('#auth-dialog').close());
-$('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#auth-username').value,password:$('#auth-password').value})});signedIn(result,'guest')}catch(error){showStatus(error.message,true)}});
+$('#auth-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await api('/auth/managed-login',{method:'POST',body:JSON.stringify({username:$('#auth-username').value,password:$('#auth-password').value,allowRenewal:true})});signedIn(result,'guest')}catch(error){showStatus(error.message,true)}});
 $('#searches-list').addEventListener('click',async event=>{const show=event.target.closest('[data-show-search]');if(show){const search=searches.find(s=>s.id===show.dataset.showSearch);if(!search)return;const usesGel=search.minPriceGel!=null||search.maxPriceGel!=null;if(usesGel&&!exchangeRate){showStatus(tr('fxUnavailable'),true);return}setCurrency(usesGel?'GEL':'USD',true,false);const minValue=usesGel?(search.minPriceGel??(search.minPriceUsd!=null?Number((search.minPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.minPriceUsd??(search.minPriceGel!=null?Number((search.minPriceGel/exchangeRate.usdGel).toFixed(2)):null));const maxValue=usesGel?(search.maxPriceGel??(search.maxPriceUsd!=null?Number((search.maxPriceUsd*exchangeRate.usdGel).toFixed(2)):null)):(search.maxPriceUsd??(search.maxPriceGel!=null?Number((search.maxPriceGel/exchangeRate.usdGel).toFixed(2)):null));syncSources(search.sources?.length?search.sources:(search.source?[search.source]:[]));for(const [name,value] of Object.entries({source:search.source,operation:search.operation,propertyType:search.propertyType,advertiserType:search.advertiserType,city:search.city,minPriceUsd:minValue,maxPriceUsd:maxValue,minBedrooms:search.minBedrooms,maxBedrooms:search.maxBedrooms,minRooms:search.minRooms,maxRooms:search.maxRooms,commercialType:search.commercialType,minAreaM2:search.minAreaM2,maxAreaM2:search.maxAreaM2,minFloor:search.minFloor,maxFloor:search.maxFloor})){const field=$('#filters').elements.namedItem(name);if(field){preserveUnknownCity(field,name==='city'?value:'');field.value=value??''}}citySelection=search.city||'';await loadDistricts(search.districts?.length?search.districts:search.district?[search.district]:[]);syncPropertyFilters();syncPriceRange();navigate('listings');loadListings();return}const toggle=event.target.closest('[data-toggle]'),remove=event.target.closest('[data-delete]');if(!toggle&&!remove)return;const id=(toggle||remove).dataset.toggle||(toggle||remove).dataset.delete;try{if(toggle){const current=searches.find(s=>s.id===id);await api('/searches/'+id,{method:'PATCH',body:JSON.stringify({enabled:!current.enabled})})}else {await api('/searches/'+id,{method:'DELETE'});if(feedSearchId===id){feedSearchId='';localStorage.removeItem('geoFeedSearchId')}}await loadSearches();feed=[];if(view==='feed')loadFeed()}catch(error){showStatus(error.message,true)}});
 $('#feed-list').addEventListener('click',event=>{const open=event.target.closest('[data-open-gallery]');if(open){event.preventDefault();event.stopPropagation();openGallery(open.dataset.openGallery)}},true);
 $('#feed-status').addEventListener('change',event=>{feedStatus=event.target.value;feed=[];localStorage.setItem('geoFeedStatus',feedStatus);loadFeed()});
@@ -779,7 +910,7 @@ $('#disable-push').addEventListener('click',disablePush);
 function openFeedFromNotification(){feedStatus='';feedSearchId='';feed=[];localStorage.setItem('geoFeedStatus','');localStorage.removeItem('geoFeedSearchId');if(view!=='feed')navigate('feed');else loadFeed()}
 window.addEventListener('hashchange',()=>{const next=location.hash.slice(1);if(['listings','feed','favorites','seek','searches'].includes(next)&&next!==view)navigate(next)});
 window.addEventListener('focus',()=>{if(location.hash==='#feed'&&token)loadFeed()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(location.hash==='#feed')loadFeed();if(location.hash==='#seek')loadSeek()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&token){syncAccount();if(!account?.accessExpired){if(location.hash==='#feed')loadFeed();if(location.hash==='#seek')loadSeek()}}});
 if('serviceWorker'in navigator){
   navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='OPEN_FEED')openFeedFromNotification()});
   navigator.serviceWorker.register('./sw.js?v=20261026-search-cards1').then(refreshPushState).catch(()=>{});
@@ -810,11 +941,11 @@ async function restoreSession(){
     if(await finishTributeCheckout())return;
     if(location.hash==='#subscribe'){history.replaceState(null,'',location.pathname+location.search);showEntry();openSubscribe();return}
     if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}
-    else if(entryMode==='managed'&&token){await syncAccount();if(token)enterWorkspace('managed')}
+    else if(entryMode==='managed'&&token){await syncAccount();if(token&&!account?.accessExpired)enterWorkspace('managed')}
     else showEntry();
   }finally{document.documentElement.classList.remove('session-restoring')}
 }
 setLanguage(language);restoreSession();
-setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();loadFeed();if(view==='seek')loadSeek()}},60000);
+setInterval(()=>{if(token&&document.visibilityState==='visible'){syncAccount();if(!account?.accessExpired){loadFeed();if(view==='seek')loadSeek()}}},60000);
 
 setInterval(()=>loadExchangeRate(),3600000);
