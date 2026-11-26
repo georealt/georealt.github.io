@@ -657,6 +657,7 @@ Object.assign(words.ru,{payInTelegram:'Оплатить в Telegram',payInBrowse
 Object.assign(words.ka,{payInTelegram:'გადახდა Telegram-ში',payInBrowser:'გადახდა ბრაუზერში'});
 
 Object.assign(words.en,{
+  testPlan:'Test access · 1 day',testActive:'Test access activated.',testRenewed:'Test access extended.',
   subscriptionTitle:'Subscription',renewSubscription:'Renew subscription',subscriptionUntil:'Access through',
   noExpiry:'Unlimited access',renewIntro:'Choose how long to extend access for your agency. This is a one-time payment.',
   verifyTelegramText:'Open @georealt_bot from the Telegram account you entered. The payment button will appear in the chat.',
@@ -668,6 +669,7 @@ Object.assign(words.en,{
   registrationTitle:'Create an agency account',paymentStep:'Payment',
 });
 Object.assign(words.ru,{
+  testPlan:'Тест · 1 день',testActive:'Тестовый доступ активирован.',testRenewed:'Тестовый доступ продлён.',
   subscriptionTitle:'Подписка',renewSubscription:'Продлить подписку',subscriptionUntil:'Доступ до',
   noExpiry:'Бессрочный доступ',renewIntro:'Выберите, на сколько продлить доступ агентству. Оплата разовая.',
   verifyTelegramText:'Откройте @georealt_bot из указанного аккаунта Telegram. Кнопка оплаты появится в чате.',
@@ -679,6 +681,7 @@ Object.assign(words.ru,{
   registrationTitle:'Регистрация агентства',paymentStep:'Оплата',
 });
 Object.assign(words.ka,{
+  testPlan:'ტესტი · 1 დღე',testActive:'სატესტო წვდომა გააქტიურდა.',testRenewed:'სატესტო წვდომა გაგრძელდა.',
   subscriptionTitle:'გამოწერა',renewSubscription:'გამოწერის გაგრძელება',subscriptionUntil:'წვდომა მოქმედებს თარიღამდე:',
   noExpiry:'უვადო წვდომა',renewIntro:'აირჩიეთ სააგენტოსთვის წვდომის გაგრძელების ვადა. გადახდა ერთჯერადია.',
   verifyTelegramText:'გახსენით @georealt_bot მითითებული Telegram-ის ანგარიშიდან. გადახდის ღილაკი ჩატში გამოჩნდება.',
@@ -777,7 +780,7 @@ async function openSubscribe(renewal=false,ignoreSaved=false){
     if(generation!==tributePollGeneration)return;
     if(!response.available||!response.items?.length){$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=tr('billingUnavailable');$('#subscribe-error').hidden=false;return}
     $('#subscribe-submit').disabled=false;
-    $('#subscribe-plan').innerHTML=response.items.map(plan=>`<option value="${safe(plan.id)}">${safe(tr('planPeriod',plan.accessMonths))} · ${new Intl.NumberFormat(language,{style:'currency',currency:plan.currency}).format(plan.amountMinor/100)}</option>`).join('');
+    $('#subscribe-plan').innerHTML=response.items.map(plan=>`<option value="${safe(plan.id)}">${plan.test?safe(tr('testPlan')):safe(tr('planPeriod',plan.accessMonths))+' · '+new Intl.NumberFormat(language,{style:'currency',currency:plan.currency}).format(plan.amountMinor/100)}</option>`).join('');
   }catch(error){if(generation!==tributePollGeneration)return;$('#subscribe-plan').innerHTML=`<option value="">${safe(tr('billingUnavailable'))}</option>`;$('#subscribe-submit').disabled=true;$('#subscribe-error').textContent=error.message;$('#subscribe-error').hidden=false}
 }
 async function finishTributeCheckout(){
@@ -823,9 +826,9 @@ async function watchTributeCheckout(checkoutId,checkoutKey,storageKey,renewal){
         if(renewal){
           await syncAccount();
           if(account?.id===ownerId&&!account.accessExpired){
-            enterWorkspace('managed');showStatus(tr('renewalPaid'));
+            enterWorkspace('managed');showStatus(tr(result.test?'testRenewed':'renewalPaid'));
           }
-        }else showPaidRegistration(result);
+        }else if(result.test){signedIn(result,'managed');showStatus(tr('testActive'))}else showPaidRegistration(result);
         return;
       }
       if(['failed','expired'].includes(result.status)){
