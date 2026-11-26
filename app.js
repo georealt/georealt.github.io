@@ -663,7 +663,7 @@ Object.assign(words.en,{
   telegramVerified:'Buyer verified. Pay here or in @georealt_bot using the same Telegram account. Listing alerts start after payment.',
   telegramPaidTitle:'Telegram is ready',telegramPaidText:'Payment confirmed. New listings will appear in @georealt_bot.',
   openListingBot:'Open listing bot',renewalPaid:'Payment confirmed. Your subscription has been renewed.',
-  resumePayment:'Continue payment',signInAnother:'Sign in with another account',newRegistration:'New registration',
+  resumePayment:'Continue payment',signInAnother:'Sign in with another account',
   registrationTitle:'Create an agency account',paymentStep:'Payment',
 });
 Object.assign(words.ru,{
@@ -673,7 +673,7 @@ Object.assign(words.ru,{
   telegramVerified:'Покупатель подтверждён. При оплате здесь или в @georealt_bot используйте тот же аккаунт Telegram. Рассылка включится после оплаты.',
   telegramPaidTitle:'Telegram подключён',telegramPaidText:'Оплата подтверждена. Новые объявления будут приходить в @georealt_bot.',
   openListingBot:'Открыть бот с объявлениями',renewalPaid:'Оплата подтверждена. Подписка продлена.',
-  resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',newRegistration:'Новая регистрация',
+  resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',
   registrationTitle:'Регистрация агентства',paymentStep:'Оплата',
 });
 Object.assign(words.ka,{
@@ -683,23 +683,15 @@ Object.assign(words.ka,{
   telegramVerified:'მყიდველი დადასტურებულია. აქ ან @georealt_bot-ში გადახდისას გამოიყენეთ იგივე Telegram-ის ანგარიში. განცხადებების მიღება გადახდის შემდეგ დაიწყება.',
   telegramPaidTitle:'Telegram დაკავშირებულია',telegramPaidText:'გადახდა დადასტურებულია. ახალ განცხადებებს @georealt_bot-ში მიიღებთ.',
   openListingBot:'განცხადებების ბოტის გახსნა',renewalPaid:'გადახდა დადასტურებულია. გამოწერა გაგრძელდა.',
-  resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',newRegistration:'ახალი რეგისტრაცია',
+  resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',
   registrationTitle:'სააგენტოს რეგისტრაცია',paymentStep:'გადახდა',
 });
 
-let alternateEntryLogin=false;
 function renderSubscription(){
   const manager=Boolean(account?.isManager);
   $('#account-button').textContent=tr(manager?'subscriptionTitle':account?'signOut':'signIn');
   $('#entry-renew').hidden=!(manager&&account.accessExpired);
-  const renewalOnly=manager&&account.accessExpired;
-  const hasPending=!renewalOnly&&Boolean(savedTributeCheckout(tributeStorageKey(false)));
-  $('#entry-resume').hidden=!hasPending;
-  $('#entry-switch-account').hidden=!hasPending||alternateEntryLogin;
-  $('#entry-form').hidden=hasPending&&!alternateEntryLogin;
-  $('#entry-intro').hidden=$('#entry-form').hidden;
-  $('#entry-subscribe').hidden=renewalOnly;
-  $('#entry-subscribe').textContent=tr(hasPending?'newRegistration':'subscribe');
+  $('#entry-subscribe').hidden=manager&&account.accessExpired;
   $('#account-renew').hidden=!manager||account.expiresAt==='9999-12-31';
   const expiry=account?.expiresAt;
   $('#account-access-date').textContent=expiry==='9999-12-31'?tr('noExpiry'):
@@ -767,7 +759,9 @@ async function openSubscribe(renewal=false,ignoreSaved=false){
   $('#subscribe-telegram-link').hidden=false;
   $('#subscribe-details').hidden=false;$('#subscribe-connect-step').hidden=true;showTributePaymentLinks();
   $('#subscribe-submit').disabled=false;$('#subscribe-error').hidden=true;
-  const pending=ignoreSaved?null:savedTributeCheckout(storageKey);
+  const saved=savedTributeCheckout(storageKey);
+  $('#subscribe-resume').hidden=renewal||!saved;
+  const pending=ignoreSaved?null:saved;
   if(pending){
     showPendingTributeCheckout(pending,renewal,true);
     if(!$('#subscribe-dialog').open)$('#subscribe-dialog').showModal();
@@ -853,7 +847,7 @@ $('#entry-subscribe').addEventListener('click',()=>{
   $('#subscribe-username').value='';$('#subscribe-password').value='';
   openSubscribe(false,true);
 });
-$('#entry-resume').addEventListener('click',()=>openSubscribe());
+$('#subscribe-resume').addEventListener('click',()=>openSubscribe());
 $('#entry-renew').addEventListener('click',()=>openSubscribe(true));
 $('#account-renew').addEventListener('click',()=>{$('#account-dialog').close();openSubscribe(true)});
 $('#close-account').addEventListener('click',()=>$('#account-dialog').close());
@@ -862,15 +856,12 @@ $('#subscribe-dialog').addEventListener('close',()=>{if(!$('#subscribe-dialog').
 function switchRegistrationAccount(){
   tributePollGeneration++;
   if($('#subscribe-dialog').open)$('#subscribe-dialog').close();
-  alternateEntryLogin=true;
-  renderSubscription();
   for(const id of ['#entry-username','#entry-password','#auth-username','#auth-password'])$(id).value='';
   $('#entry-error').hidden=true;
   if(document.body.classList.contains('entered')){
     openAuth();$('#auth-username').focus();
   }else $('#entry-username').focus();
 }
-$('#entry-switch-account').addEventListener('click',switchRegistrationAccount);
 $('#subscribe-switch-account').addEventListener('click',switchRegistrationAccount);
 $('#subscribe-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#subscribe-submit'),error=$('#subscribe-error');button.disabled=true;error.hidden=true;
@@ -964,7 +955,7 @@ setupAutoHideHeader();
 async function restoreSession(){
   try{
     if(await finishTributeCheckout())return;
-    if(location.hash==='#subscribe'){history.replaceState(null,'',location.pathname+location.search);showEntry();openSubscribe();return}
+    if(location.hash==='#subscribe'){history.replaceState(null,'',location.pathname+location.search);showEntry();openSubscribe(false,true);return}
     if(entryMode==='guest'){enterWorkspace('guest');syncAccount()}
     else if(entryMode==='managed'&&token){await syncAccount();if(token&&!account?.accessExpired)enterWorkspace('managed')}
     else showEntry();

@@ -35,15 +35,13 @@
       <div class="entry-top"><div class="entry-brand"><img src="./icon.png" alt="" width="52" height="52"><strong>Geo Realt</strong></div><select id="entry-language" aria-label="Interface language"><option value="en">EN</option><option value="ru">RU</option><option value="ka">KA</option></select></div>
       <div class="eyebrow" data-i18n="welcome">WELCOME TO GEO REALT</div>
       <h1 id="entry-title" data-i18n="entryTitle">Your property radar</h1>
-      <p id="entry-intro" data-i18n="entryIntro">Sign in with the username and password provided to you.</p>
+      <p data-i18n="entryIntro">Sign in with the username and password provided to you.</p>
       <form id="entry-form" class="entry-form">
         <label><span data-i18n="username">Username</span><input id="entry-username" name="username" autocomplete="username" required minlength="3" maxlength="32"></label>
         <label><span data-i18n="password">Password</span><input id="entry-password" name="password" type="password" minlength="4" autocomplete="current-password" required></label>
         <button id="entry-submit" class="primary-button" type="submit" data-i18n="signIn">Sign in</button>
       </form>
       <p id="entry-error" class="entry-error" role="alert" hidden></p>
-      <button id="entry-resume" class="primary-button" type="button" data-i18n="resumePayment" hidden>Continue payment</button>
-      <button id="entry-switch-account" class="entry-guest" type="button" data-i18n="signInAnother" hidden>Sign in with another account</button>
       <button id="entry-subscribe" class="entry-guest" type="button" data-i18n="subscribe">Subscribe</button>
       <button id="entry-renew" class="entry-guest" type="button" data-i18n="renewSubscription" hidden>Renew subscription</button>
     </div>
@@ -105,6 +103,7 @@
       <h2 id="subscribe-title" data-i18n="subscribeTitle">Create access</h2>
       <p id="subscribe-intro" data-i18n="subscribeIntro"></p>
       <div id="subscribe-details">
+        <button id="subscribe-resume" class="secondary-button" type="button" data-i18n="resumePayment" hidden>Continue payment</button>
         <label id="subscribe-username-field"><span data-i18n="username">Username</span><input id="subscribe-username" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+"></label>
         <label id="subscribe-password-field"><span data-i18n="password">Password</span><input id="subscribe-password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="128"></label>
         <label><span data-i18n="telegramHandle">Telegram username</span><input id="subscribe-telegram" name="telegramUsername" autocomplete="off" placeholder="@username" required minlength="5" maxlength="33"></label>
@@ -132,6 +131,6 @@
     <button id="photo-next" class="photo-step photo-next" type="button" aria-label="Next photo">›</button>
     <div id="photo-count" class="photo-count"></div>
   </dialog>
-  <script src="./app.js?v=20261126-registration-steps" defer onerror="document.documentElement.classList.remove('session-restoring')"></script>
+  <script src="./app.js?v=20261126-entry-cleanup" defer onerror="document.documentElement.classList.remove('session-restoring')"></script>
 </body>
 </html>
