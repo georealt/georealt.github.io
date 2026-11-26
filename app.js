@@ -663,7 +663,8 @@ Object.assign(words.en,{
   telegramVerified:'Buyer verified. Pay here or in @georealt_bot using the same Telegram account. Listing alerts start after payment.',
   telegramPaidTitle:'Telegram is ready',telegramPaidText:'Payment confirmed. New listings will appear in @georealt_bot.',
   openListingBot:'Open listing bot',renewalPaid:'Payment confirmed. Your subscription has been renewed.',
-  resumePayment:'Continue payment',signInAnother:'Sign in with another account',
+  resumePayment:'Continue payment',signInAnother:'Sign in with another account',newRegistration:'New registration',
+  registrationTitle:'Create an agency account',paymentStep:'Payment',
 });
 Object.assign(words.ru,{
   subscriptionTitle:'Подписка',renewSubscription:'Продлить подписку',subscriptionUntil:'Доступ до',
@@ -672,7 +673,8 @@ Object.assign(words.ru,{
   telegramVerified:'Покупатель подтверждён. При оплате здесь или в @georealt_bot используйте тот же аккаунт Telegram. Рассылка включится после оплаты.',
   telegramPaidTitle:'Telegram подключён',telegramPaidText:'Оплата подтверждена. Новые объявления будут приходить в @georealt_bot.',
   openListingBot:'Открыть бот с объявлениями',renewalPaid:'Оплата подтверждена. Подписка продлена.',
-  resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',
+  resumePayment:'Продолжить оплату',signInAnother:'Войти под другим логином',newRegistration:'Новая регистрация',
+  registrationTitle:'Регистрация агентства',paymentStep:'Оплата',
 });
 Object.assign(words.ka,{
   subscriptionTitle:'გამოწერა',renewSubscription:'გამოწერის გაგრძელება',subscriptionUntil:'წვდომა მოქმედებს თარიღამდე:',
@@ -681,16 +683,23 @@ Object.assign(words.ka,{
   telegramVerified:'მყიდველი დადასტურებულია. აქ ან @georealt_bot-ში გადახდისას გამოიყენეთ იგივე Telegram-ის ანგარიში. განცხადებების მიღება გადახდის შემდეგ დაიწყება.',
   telegramPaidTitle:'Telegram დაკავშირებულია',telegramPaidText:'გადახდა დადასტურებულია. ახალ განცხადებებს @georealt_bot-ში მიიღებთ.',
   openListingBot:'განცხადებების ბოტის გახსნა',renewalPaid:'გადახდა დადასტურებულია. გამოწერა გაგრძელდა.',
-  resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',
+  resumePayment:'გადახდის გაგრძელება',signInAnother:'სხვა ანგარიშით შესვლა',newRegistration:'ახალი რეგისტრაცია',
+  registrationTitle:'სააგენტოს რეგისტრაცია',paymentStep:'გადახდა',
 });
 
+let alternateEntryLogin=false;
 function renderSubscription(){
   const manager=Boolean(account?.isManager);
   $('#account-button').textContent=tr(manager?'subscriptionTitle':account?'signOut':'signIn');
   $('#entry-renew').hidden=!(manager&&account.accessExpired);
-  const subscribe=$('#entry-subscribe');
-  subscribe.hidden=manager&&account.accessExpired;
-  subscribe.textContent=tr(savedTributeCheckout(tributeStorageKey(false))?'resumePayment':'subscribe');
+  const renewalOnly=manager&&account.accessExpired;
+  const hasPending=!renewalOnly&&Boolean(savedTributeCheckout(tributeStorageKey(false)));
+  $('#entry-resume').hidden=!hasPending;
+  $('#entry-switch-account').hidden=!hasPending||alternateEntryLogin;
+  $('#entry-form').hidden=hasPending&&!alternateEntryLogin;
+  $('#entry-intro').hidden=$('#entry-form').hidden;
+  $('#entry-subscribe').hidden=renewalOnly;
+  $('#entry-subscribe').textContent=tr(hasPending?'newRegistration':'subscribe');
   $('#account-renew').hidden=!manager||account.expiresAt==='9999-12-31';
   const expiry=account?.expiresAt;
   $('#account-access-date').textContent=expiry==='9999-12-31'?tr('noExpiry'):
@@ -722,14 +731,23 @@ function savedTributeCheckout(storageKey){
     return saved?.id&&saved?.key?saved:null;
   }catch{return null}
 }
-function showPendingTributeCheckout(pending,renewal){
-  $('#subscribe-title').dataset.i18n='resumePayment';
-  $('#subscribe-title').textContent=tr('resumePayment');
+function renderTributeStep(verified){
+  const title=$('#subscribe-step-title');
+  title.hidden=verified===null;
+  title.dataset.i18n=verified?'paymentStep':'verifyTelegramTitle';
+  title.textContent=tr(title.dataset.i18n);
+  $('#subscribe-verify-help').hidden=verified!==false;
+  $('#subscribe-telegram-link').hidden=verified!==false;
+  $('#subscribe-step-message').textContent=tr(verified===null?'loading':verified?'telegramVerified':'waitingTelegram');
+}
+function showPendingTributeCheckout(pending,renewal,resuming=false){
+  $('#subscribe-title').dataset.i18n=resuming?'resumePayment':renewal?'renewSubscription':'registrationTitle';
+  $('#subscribe-title').textContent=tr($('#subscribe-title').dataset.i18n);
   $('#subscribe-intro').hidden=true;
   $('#subscribe-details').hidden=true;$('#subscribe-connect-step').hidden=false;
-  $('#subscribe-switch-account').hidden=renewal;
+  $('#subscribe-switch-account').hidden=renewal||!resuming;
   $('#subscribe-telegram-link').href=pending.telegramUrl||'https://t.me/georealt_bot';
-  $('#subscribe-step-message').textContent=tr('waitingTelegram');
+  renderTributeStep(resuming?null:false);
 }
 async function openSubscribe(renewal=false,ignoreSaved=false){
   if(renewal&&(!token||!account?.isManager))return;
@@ -742,7 +760,7 @@ async function openSubscribe(renewal=false,ignoreSaved=false){
     $('#subscribe-'+field).disabled=renewal;
   }
   $('#subscribe-telegram').value=renewal?(account.telegramUsername||''):'';
-  $('#subscribe-title').dataset.i18n=renewal?'renewSubscription':'subscribeTitle';
+  $('#subscribe-title').dataset.i18n=renewal?'renewSubscription':'registrationTitle';
   $('#subscribe-intro').dataset.i18n=renewal?'renewIntro':'subscribeIntro';
   $('#subscribe-intro').hidden=false;
   for(const el of [$('#subscribe-title'),$('#subscribe-intro')])el.textContent=tr(el.dataset.i18n);
@@ -751,7 +769,7 @@ async function openSubscribe(renewal=false,ignoreSaved=false){
   $('#subscribe-submit').disabled=false;$('#subscribe-error').hidden=true;
   const pending=ignoreSaved?null:savedTributeCheckout(storageKey);
   if(pending){
-    showPendingTributeCheckout(pending,renewal);
+    showPendingTributeCheckout(pending,renewal,true);
     if(!$('#subscribe-dialog').open)$('#subscribe-dialog').showModal();
     watchTributeCheckout(pending.id,pending.key,storageKey,renewal);return;
   }
@@ -816,12 +834,11 @@ async function watchTributeCheckout(checkoutId,checkoutKey,storageKey,renewal){
       if(['failed','expired'].includes(result.status)){
         localStorage.removeItem(storageKey);renderSubscription();openSubscribe(renewal,true);return;
       }
-      if((result.telegramVerified??result.telegramLinked)&&(result.paymentUrl||result.telegramPaymentUrl)){
-        $('#subscribe-step-message').textContent=tr('telegramVerified');
+      const verified=Boolean(result.telegramVerified??result.telegramLinked);
+      renderTributeStep(verified);
+      if(verified){
         showTributePaymentLinks(result.paymentUrl,result.telegramPaymentUrl);
       }else{
-        $('#subscribe-telegram-link').hidden=false;
-        $('#subscribe-step-message').textContent=tr('waitingTelegram');
         showTributePaymentLinks();
       }
     }catch(error){
@@ -832,21 +849,29 @@ async function watchTributeCheckout(checkoutId,checkoutKey,storageKey,renewal){
   }
   if(generation===tributePollGeneration){$('#subscribe-error').textContent=tr('paymentPending');$('#subscribe-error').hidden=false}
 }
-$('#entry-subscribe').addEventListener('click',()=>openSubscribe());
+$('#entry-subscribe').addEventListener('click',()=>{
+  $('#subscribe-username').value='';$('#subscribe-password').value='';
+  openSubscribe(false,true);
+});
+$('#entry-resume').addEventListener('click',()=>openSubscribe());
 $('#entry-renew').addEventListener('click',()=>openSubscribe(true));
 $('#account-renew').addEventListener('click',()=>{$('#account-dialog').close();openSubscribe(true)});
 $('#close-account').addEventListener('click',()=>$('#account-dialog').close());
 $('#close-subscribe').addEventListener('click',()=>$('#subscribe-dialog').close());
 $('#subscribe-dialog').addEventListener('close',()=>{if(!$('#subscribe-dialog').open)tributePollGeneration++});
-$('#subscribe-switch-account').addEventListener('click',()=>{
+function switchRegistrationAccount(){
   tributePollGeneration++;
-  $('#subscribe-dialog').close();
+  if($('#subscribe-dialog').open)$('#subscribe-dialog').close();
+  alternateEntryLogin=true;
+  renderSubscription();
   for(const id of ['#entry-username','#entry-password','#auth-username','#auth-password'])$(id).value='';
   $('#entry-error').hidden=true;
   if(document.body.classList.contains('entered')){
     openAuth();$('#auth-username').focus();
   }else $('#entry-username').focus();
-});
+}
+$('#entry-switch-account').addEventListener('click',switchRegistrationAccount);
+$('#subscribe-switch-account').addEventListener('click',switchRegistrationAccount);
 $('#subscribe-form').addEventListener('submit',async event=>{
   event.preventDefault();const button=$('#subscribe-submit'),error=$('#subscribe-error');button.disabled=true;error.hidden=true;
   const renewal=renewalCheckout,storageKey=tributeStorageKey(renewal),generation=tributePollGeneration;
