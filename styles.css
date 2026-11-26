@@ -305,6 +305,7 @@ body.entered .entry-screen{display:none}
 .billing-dialog label{min-width:0;gap:8px;font-size:13px;font-weight:700;line-height:1.35}
 .billing-dialog input,.billing-dialog select{min-width:0;height:50px;padding:0 14px;font-size:16px;font-weight:500;line-height:1.3}
 .telegram-username-field{display:flex;align-items:center;border:1px solid #dce2e6;border-radius:9px;background:#fff;overflow:hidden}
+.entry-guest{height:auto;min-height:44px;padding:10px 14px;line-height:1.25;text-align:center}
 .telegram-username-field:focus-within{outline:2px solid #d8e8f0;border-color:#44708b}
 .telegram-username-field>span{padding-left:14px;font-size:16px;color:#59656d}
 .billing-dialog .telegram-username-field input{border:0;outline:0;padding-left:2px}
